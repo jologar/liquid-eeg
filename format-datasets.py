@@ -2,10 +2,11 @@ import numpy as np
 import os
 import scipy
 
+from imblearn.under_sampling import RandomUnderSampler
 from pandas import DataFrame
 
 DATASETS_PATH = './datasets'
-DATASETS_TREATED_PATH = './datasets/csv'
+DATASETS_TREATED_PATH = './datasets/csv_bis'
 RHO_THRESHOLD = 10
 REST_STATE = 91
 EXPERIMENT_FINISH = 92
@@ -75,6 +76,20 @@ def balance_dataset(df: DataFrame) -> DataFrame:
     return df
 
 
+def random_balance_dataset(df: DataFrame) -> DataFrame:
+    rho = calculate_rho(df)
+    if rho > RHO_THRESHOLD:
+        rus = RandomUnderSampler(random_state=0)
+        y = df['Marker']
+        X = df.loc[:, df.columns != 'Marker']
+
+        df_rus, y_rus = rus.fit_resample(X, y)
+        df_rus['Marker'] = y_rus
+        df = df_rus
+
+    return df
+
+
 def main():
     for file in os.listdir(DATASETS_PATH):
         if file.endswith('.mat'):
@@ -83,7 +98,7 @@ def main():
             experiments: list[DataFrame] = split_experiments(df)
 
             for idx, experiment in enumerate(experiments):
-                experiment = balance_dataset(experiment)
+                experiment = random_balance_dataset(experiment)
                 file_name = os.path.splitext(file)[0] + f'_experiment_{idx}.csv'
                 treated_path = os.path.join(DATASETS_TREATED_PATH, file_name)
 
