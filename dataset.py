@@ -30,7 +30,8 @@ class EEGDataset(Dataset):
                 df = df.sort_values(by=df.columns[0])
                 df = df.drop(df.columns[0], axis=1)
                 df_list.append(df)
-            df = pd.concat(df_list)  
+            df = pd.concat(df_list)
+            df = df.reset_index(drop=True)
             self.eeg_data = df
             del df
 
@@ -53,7 +54,6 @@ class EEGDataset(Dataset):
         return int((len(self.eeg_data) - self.sequence_length) / (self.sequence_length * overlap))
     
     def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
-
         index = int(index*self.sequence_length*self.sequence_overlap + self.sequence_length)
         seq_start_idx = index - self.sequence_length
 
