@@ -1,0 +1,17 @@
+{
+    "train_epochs": 15,
+    "experiments": [
+        {
+            "name": "jandenawer1",
+            "target_label": "Marker",
+            "learning_rate": 1e-3,
+            "decay_rate": 0.96,
+            "liquid_units": 225,
+            "droupout": 0.2,
+            "batch_size": 500,
+            "sequence_length": 40,
+            "sequence_overlap": 0.7,
+            "features": null
+        }
+    ]
+}
