@@ -7,9 +7,10 @@ from ncps.torch import CfC
 
 def convolutional_layer(layer: int, kernels: int = 64, kernel_size: int = 5, dropout: float = 0.0):
     padding = kernel_size // 2
+    in_channels = 1 if layer == 0 else kernels
 
     return [
-        nn.Conv2d(in_channels=1, out_channels=kernels, kernel_size=kernel_size, stride=1, padding=padding),
+        nn.Conv2d(in_channels=in_channels, out_channels=kernels, kernel_size=kernel_size, stride=1, padding=padding),
         nn.BatchNorm2d(kernels),
         nn.ReLU(),
         nn.Dropout2d(p=dropout),
