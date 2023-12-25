@@ -1,18 +1,27 @@
 from collections import OrderedDict
 import torch.nn as nn
+import numpy as np
 from ncps.wirings import AutoNCP
 from ncps.torch import CfC
 
 
 def convolutional_layer(layer: int, kernels: int = 64, kernel_size: int = 5, dropout: float = 0.0):
     padding = kernel_size // 2
+
     return [
-        (f'conv_{layer}', nn.Conv2d(in_channels=1, out_channels=kernels, kernel_size=kernel_size, stride=1, padding=padding))
-        (f'norm_{layer}', nn.BatchNorm2d(kernel_size)),
-        (f'act_{layer}', nn.ReLU()),
-        (f'dropout_{layer}', nn.Dropout2d(p=dropout)),
-        (f'pool_{layer}', nn.MaxPool2d(kernel_size=3, stride=2)),
+        nn.Conv2d(in_channels=1, out_channels=kernels, kernel_size=kernel_size, stride=1, padding=padding),
+        nn.BatchNorm2d(kernel_size),
+        nn.ReLU(),
+        nn.Dropout2d(p=dropout),
+        nn.MaxPool2d(kernel_size=3, stride=2),
     ]
+    # return [
+    #     (f'conv_{layer}', nn.Conv2d(in_channels=1, out_channels=kernels, kernel_size=kernel_size, stride=1, padding=padding))
+    #     (f'norm_{layer}', nn.BatchNorm2d(kernel_size)),
+    #     (f'act_{layer}', nn.ReLU()),
+    #     (f'dropout_{layer}', nn.Dropout2d(p=dropout)),
+    #     (f'pool_{layer}', nn.MaxPool2d(kernel_size=3, stride=2)),
+    # ]
 
 
 class LiquidBlock(nn.Module):
@@ -31,9 +40,10 @@ class ConvolutionalBlock(nn.Module):
     def __init__(self, num_layers, out_features, dropout, kernels):
         super().__init__()
         
-        self.cnn = nn.Sequential(
-            OrderedDict([convolutional_layer(idx, kernels=kernels, kernel_size=3, dropout=dropout) for idx in range(num_layers)])
-        )
+        layers = [convolutional_layer(idx, kernels=kernels, kernel_size=3, dropout=dropout) for idx in range(num_layers)]
+        layers = list(np.array(layers).flatten())
+
+        self.cnn = nn.Sequential(*layers)
         self.flatten = nn.Flatten()
         self.linear = nn.Sequential(
             nn.LazyLinear(out_features=out_features),

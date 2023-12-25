@@ -3,6 +3,8 @@ import torch
 
 from torch.utils.data import Dataset
 
+TOTAL_FEATURES = 22
+
 # Define custom dataset to load sequences
 class EEGDataset(Dataset):
     def __init__(
@@ -53,7 +55,7 @@ class EEGDataset(Dataset):
     def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
 
         index = int(index*self.sequence_length*self.sequence_overlap + self.sequence_length)
-        seq_start_idx = index - sexperimentself.sequence_length
+        seq_start_idx = index - self.sequence_length
 
         X = torch.tensor(self.eeg_data[self.features][seq_start_idx:index].values).type(torch.FloatTensor)
         y = torch.tensor(self.eeg_data[self.target_label][index]).type(torch.LongTensor)

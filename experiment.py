@@ -10,28 +10,28 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import ExponentialLR
 from torch.utils.data import DataLoader
 
-from dataset import EEGDataset
+from dataset import TOTAL_FEATURES, EEGDataset
 from model import LiquidEEG, count_parameters
 from training import EPOCHS, test_loop, train_loop
 
 NUM_CLASSES = 7
 EXPERIMENT_DATA = [
-    '../datasets/csv/HaLT-SubjectA-160223-6St-LRHandLegTongue_experiment_0.csv',
-    '../datasets/csv/HaLT-SubjectA-160223-6St-LRHandLegTongue_experiment_1.csv',
-    '../datasets/csv/HaLT-SubjectA-160223-6St-LRHandLegTongue_experiment_2.csv',
-    '../datasets/csv/HaLT-SubjectA-160308-6St-LRHandLegTongue_experiment_0.csv',
-    '../datasets/csv/HaLT-SubjectA-160308-6St-LRHandLegTongue_experiment_1.csv',
-    '../datasets/csv/HaLT-SubjectA-160310-6St-LRHandLegTongue_experiment_0.csv',
-    '../datasets/csv/HaLT-SubjectA-160310-6St-LRHandLegTongue_experiment_1.csv',
-    '../datasets/csv/HaLT-SubjectB-160218-6St-LRHandLegTongue_experiment_0.csv',
-    '../datasets/csv/HaLT-SubjectB-160218-6St-LRHandLegTongue_experiment_1.csv',
-    '../datasets/csv/HaLT-SubjectB-160218-6St-LRHandLegTongue_experiment_2.csv',
-    '../datasets/csv/HaLT-SubjectB-160225-6St-LRHandLegTongue_experiment_0.csv',
-    '../datasets/csv/HaLT-SubjectB-160225-6St-LRHandLegTongue_experiment_1.csv',
-    '../datasets/csv/HaLT-SubjectB-160225-6St-LRHandLegTongue_experiment_2.csv',
-    '../datasets/csv/HaLT-SubjectB-160229-6St-LRHandLegTongue_experiment_0.csv',
-    '../datasets/csv/HaLT-SubjectB-160229-6St-LRHandLegTongue_experiment_1.csv',
-    '../datasets/csv/HaLT-SubjectB-160229-6St-LRHandLegTongue_experiment_2.csv',
+    './datasets/csv/HaLT-SubjectA-160223-6St-LRHandLegTongue_experiment_0.csv',
+    './datasets/csv/HaLT-SubjectA-160223-6St-LRHandLegTongue_experiment_1.csv',
+    './datasets/csv/HaLT-SubjectA-160223-6St-LRHandLegTongue_experiment_2.csv',
+    './datasets/csv/HaLT-SubjectA-160308-6St-LRHandLegTongue_experiment_0.csv',
+    './datasets/csv/HaLT-SubjectA-160308-6St-LRHandLegTongue_experiment_1.csv',
+    './datasets/csv/HaLT-SubjectA-160310-6St-LRHandLegTongue_experiment_0.csv',
+    './datasets/csv/HaLT-SubjectA-160310-6St-LRHandLegTongue_experiment_1.csv',
+    './datasets/csv/HaLT-SubjectB-160218-6St-LRHandLegTongue_experiment_0.csv',
+    './datasets/csv/HaLT-SubjectB-160218-6St-LRHandLegTongue_experiment_1.csv',
+    './datasets/csv/HaLT-SubjectB-160218-6St-LRHandLegTongue_experiment_2.csv',
+    './datasets/csv/HaLT-SubjectB-160225-6St-LRHandLegTongue_experiment_0.csv',
+    './datasets/csv/HaLT-SubjectB-160225-6St-LRHandLegTongue_experiment_1.csv',
+    './datasets/csv/HaLT-SubjectB-160225-6St-LRHandLegTongue_experiment_2.csv',
+    './datasets/csv/HaLT-SubjectB-160229-6St-LRHandLegTongue_experiment_0.csv',
+    './datasets/csv/HaLT-SubjectB-160229-6St-LRHandLegTongue_experiment_1.csv',
+    './datasets/csv/HaLT-SubjectB-160229-6St-LRHandLegTongue_experiment_2.csv',
 ]
 
 
@@ -45,19 +45,20 @@ class ExperimentConfig(BaseModel):
     batch_size: int
     sequence_length: int
     sequence_overlap: float
-    features: list[str] | None
+    features: list[str] | None = None
 
 
 class Experiment:
     def __init__(self, config: ExperimentConfig, num_classes: int, device: str):
         self.config = config
         self.device = device
+        num_features = TOTAL_FEATURES if config.features is None else len(config.features)
 
         self.loss_fn = CrossEntropyLoss()
         self.model = LiquidEEG(
             liquid_units=config.liquid_units,
             num_classes=num_classes,
-            in_features=len(config.features),
+            sensory_units=num_features,
             dropout=config.dropout,
         ).to(device)
         self.optimizer = Adam(params=self.model.parameters(), lr=config.learning_rate)
@@ -95,7 +96,7 @@ class Experiment:
             'train_history': experiment_history,
         }
 
-        log_name = f'../log/framework/history_{self.config.name}_{datetime.datetime.timestamp(datetime.datetime.now())}.json'
+        log_name = f'././log/framework/history_{self.config.name}_{datetime.datetime.timestamp(datetime.datetime.now())}.json'
 
         with open(log_name, 'w', encoding='utf-8') as f:
             json.dump(train_log, f, ensure_ascii=False, indent=4)
