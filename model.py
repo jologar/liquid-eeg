@@ -10,18 +10,11 @@ def convolutional_layer(layer: int, kernels: int = 64, kernel_size: int = 5, dro
 
     return [
         nn.Conv2d(in_channels=1, out_channels=kernels, kernel_size=kernel_size, stride=1, padding=padding),
-        nn.BatchNorm2d(kernel_size),
+        nn.BatchNorm2d(kernels),
         nn.ReLU(),
         nn.Dropout2d(p=dropout),
         nn.MaxPool2d(kernel_size=3, stride=2),
     ]
-    # return [
-    #     (f'conv_{layer}', nn.Conv2d(in_channels=1, out_channels=kernels, kernel_size=kernel_size, stride=1, padding=padding))
-    #     (f'norm_{layer}', nn.BatchNorm2d(kernel_size)),
-    #     (f'act_{layer}', nn.ReLU()),
-    #     (f'dropout_{layer}', nn.Dropout2d(p=dropout)),
-    #     (f'pool_{layer}', nn.MaxPool2d(kernel_size=3, stride=2)),
-    # ]
 
 
 class LiquidBlock(nn.Module):
