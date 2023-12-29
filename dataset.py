@@ -1,9 +1,81 @@
+import numpy as np
 import pandas as pd
 import torch
 
-from torch.utils.data import Dataset
+from itertools import cycle
+from torch.utils.data import DataLoader, Dataset, IterableDataset
 
-TOTAL_FEATURES = 22
+TOTAL_FEATURES = 22    
+
+
+class EEGIterableDataset(IterableDataset):
+    def __init__(
+        self,
+        ds_path: str,
+        target_label: str,
+        sequence_length: int = 20,
+        sequence_overlap: float = 0.0,
+        features: list[str] = None,
+        total_samples = None,
+    ):
+        super(EEGIterableDataset).__init__()
+        self.target_label = target_label
+        self.sequence_length = sequence_length
+        self.sequence_overlap = sequence_overlap
+        self.total_samples = total_samples
+        self.csv_path = ds_path
+
+        if features is not None:
+            features.append(target_label)
+        self.features = features
+        
+        self.init_iterator()
+
+    def init_iterator(self):
+        chunksize = self.sequence_length + (self.sequence_length - self.sequence_length*self.sequence_overlap)*800
+        self.data_iterator = pd.read_csv(self.csv_path, chunksize=chunksize, usecols=self.features)
+
+    def get_total_sequences(self) -> int | None:
+        if self.total_samples is None: return None
+
+        overlap = self.sequence_overlap if self.sequence_overlap > 0 else 1
+        return int((self.total_samples - self.sequence_length) / (self.sequence_length * overlap))
+
+    def get_sequence_indexes(self, sample_idx: int) -> tuple[int, int]:
+        seq_idx = int(sample_idx*self.sequence_length*self.sequence_overlap + self.sequence_length)
+        seq_start_idx = seq_idx - self.sequence_length
+
+        return seq_start_idx, seq_idx
+
+    def get_stream(self):
+        test = 0
+        for chunk in self.data_iterator:
+            # print(f'>>>>>>>>>>>>>>>>>>>>>>>>>> CHUNK {test} {len(chunk)}')
+            # print(f'>>>>>>>>>>>>> INDEXES: {chunk.index}')
+            chunk = chunk.reset_index(drop=True)
+            # print(f'>>>>>>>>>>>>>>>>>>>> CHUNK HEAD: {chunk.shape}')
+
+            test += 1
+            sample_idx = 0
+            seq_start_idx, seq_idx = self.get_sequence_indexes(sample_idx)
+            while seq_idx < len(chunk):
+                # print(f'>>>>>>>>> SEQ INDEXES: {sample_idx} {seq_idx} {seq_start_idx}')
+                # if sample_idx in [21, 22, 23]:
+                #     print(f'>>>>>>>>>>> SAMPLE {sample_idx}')
+                #     print(f'>>>>>>>> X : {chunk.loc[seq_start_idx:seq_idx, chunk.columns != self.target_label].values}')
+                X = torch.tensor(chunk.loc[seq_start_idx:seq_idx, chunk.columns != self.target_label].values).type(torch.FloatTensor)
+                y = torch.tensor(chunk[self.target_label][seq_idx]).type(torch.LongTensor)
+
+                sample_idx += 1
+                seq_start_idx, seq_idx = self.get_sequence_indexes(sample_idx)
+                yield X, y                
+
+
+    def __iter__(self):
+        return self.get_stream()
+                
+
+
 
 # Define custom dataset to load sequences
 class EEGDataset(Dataset):

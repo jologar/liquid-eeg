@@ -1,8 +1,6 @@
 import datetime
 import json
-import uuid
 
-import numpy as np
 import torch
 from pydantic import BaseModel
 from torch.nn import CrossEntropyLoss
@@ -10,29 +8,15 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import ExponentialLR
 from torch.utils.data import DataLoader
 
-from dataset import TOTAL_FEATURES, EEGDataset
+from dataset import TOTAL_FEATURES, EEGDataset, EEGIterableDataset
 from model import LiquidEEG, count_parameters
 from training import EPOCHS, test_loop, train_loop
 
+TRAIN_DS = './datasets/csv/train-eeg-data.csv'
+VALID_DS = './datasets/csv/validation-eeg-data.csv'
+BIG_DATASET_PATH = './datasets/csv/eeg-data.csv'
+BIG_VALIDATION_DATASET_PATH = './datasets/csv/validation-eeg-data.csv'
 NUM_CLASSES = 7
-EXPERIMENT_DATA = [
-    './datasets/csv/HaLT-SubjectA-160223-6St-LRHandLegTongue_experiment_0.csv',
-    './datasets/csv/HaLT-SubjectA-160223-6St-LRHandLegTongue_experiment_1.csv',
-    './datasets/csv/HaLT-SubjectA-160223-6St-LRHandLegTongue_experiment_2.csv',
-    './datasets/csv/HaLT-SubjectA-160308-6St-LRHandLegTongue_experiment_0.csv',
-    './datasets/csv/HaLT-SubjectA-160308-6St-LRHandLegTongue_experiment_1.csv',
-    './datasets/csv/HaLT-SubjectA-160310-6St-LRHandLegTongue_experiment_0.csv',
-    './datasets/csv/HaLT-SubjectA-160310-6St-LRHandLegTongue_experiment_1.csv',
-    './datasets/csv/HaLT-SubjectB-160218-6St-LRHandLegTongue_experiment_0.csv',
-    './datasets/csv/HaLT-SubjectB-160218-6St-LRHandLegTongue_experiment_1.csv',
-    './datasets/csv/HaLT-SubjectB-160218-6St-LRHandLegTongue_experiment_2.csv',
-    './datasets/csv/HaLT-SubjectB-160225-6St-LRHandLegTongue_experiment_0.csv',
-    './datasets/csv/HaLT-SubjectB-160225-6St-LRHandLegTongue_experiment_1.csv',
-    './datasets/csv/HaLT-SubjectB-160225-6St-LRHandLegTongue_experiment_2.csv',
-    './datasets/csv/HaLT-SubjectB-160229-6St-LRHandLegTongue_experiment_0.csv',
-    './datasets/csv/HaLT-SubjectB-160229-6St-LRHandLegTongue_experiment_1.csv',
-    './datasets/csv/HaLT-SubjectB-160229-6St-LRHandLegTongue_experiment_2.csv',
-]
 
 
 class ExperimentConfig(BaseModel):
@@ -64,10 +48,11 @@ class Experiment:
         self.optimizer = Adam(params=self.model.parameters(), lr=config.learning_rate)
         self.lr_scheduler = ExponentialLR(optimizer=self.optimizer, gamma=config.decay_rate, verbose=True)
 
-    def train_with_data(self, num_epochs: int, train_ds: EEGDataset, valid_ds: EEGDataset):
+    def start_training(self, num_epochs: int, train_ds: EEGIterableDataset, valid_ds: EEGDataset):
+        # Datasets
         # Dataloaders
-        train_loader = DataLoader(train_ds, batch_size=self.config.batch_size, num_workers=3)
-        valid_loader = DataLoader(valid_ds, batch_size=self.config.batch_size, num_workers=2)
+        train_loader = DataLoader(train_ds, batch_size=self.config.batch_size, num_workers=0, drop_last=True)
+        valid_loader = DataLoader(valid_ds, batch_size=self.config.batch_size, num_workers=0, drop_last=True)
 
         experiment_history = []
         for t in range(num_epochs):
@@ -77,6 +62,8 @@ class Experiment:
             self.lr_scheduler.step()
             epoch = {'val': {'loss': test_loss, 'acc': test_acc}, 'train': {'loss': train_loss, 'acc': train_acc}}
             experiment_history.append(epoch)
+            train_loader.dataset.init_iterator()
+            valid_loader.dataset.init_iterator()
         self.log_experiment(experiment_history=experiment_history, num_samples=train_ds.__len__())
         print("Done!")
 
@@ -127,15 +114,26 @@ class ExperimentFramework:
         for experiment in self.experiments:
             # Load data
             print('LOADING DATA')
-            ds = EEGDataset(
+            total_train = None
+            with open(TRAIN_DS) as f:
+                total_train = sum(1 for _ in f)
+
+            ds = EEGIterableDataset(
                 target_label=experiment.config.target_label,
-                csv_files=EXPERIMENT_DATA,
+                ds_path=TRAIN_DS,
+                sequence_length=experiment.config.sequence_length,
+                sequence_overlap=experiment.config.sequence_overlap,
+                features=experiment.config.features,
+                total_samples=total_train
+            )
+
+            ds_valid = EEGIterableDataset(
+                target_label=experiment.config.target_label,
+                ds_path=VALID_DS,
                 sequence_length=experiment.config.sequence_length,
                 sequence_overlap=experiment.config.sequence_overlap,
                 features=experiment.config.features,
             )
-            # Split data for training
-            train_ds, valid_ds = ds.split()
-            del ds
+            
             print('DATA LOADED')
-            experiment.train_with_data(num_epochs=self.epochs, train_ds=train_ds, valid_ds=valid_ds)
+            experiment.start_training(num_epochs=self.epochs, train_ds=ds, valid_ds=ds_valid)

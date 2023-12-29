@@ -1,16 +1,23 @@
 import numpy as np
 import os
+import glob
+import pandas as pd
 import scipy
+
+from random import shuffle
 
 from imblearn.under_sampling import RandomUnderSampler
 from pandas import DataFrame
 
+VALIDATION_FILE = 'validation-eeg-data.csv'
+TRAIN_FILE = 'train-eeg-data.csv'
 DATASETS_PATH = './datasets'
-DATASETS_TREATED_PATH = './datasets/csv_bis'
+DATASETS_TREATED_PATH = './datasets/csv'
 RHO_THRESHOLD = 10
 REST_STATE = 91
 EXPERIMENT_FINISH = 92
 INITAL_RELAX = 99
+SPLIT_RATIO = 0.8
 
 
 def to_dataframe(matlab_file: str) -> DataFrame:
@@ -90,20 +97,39 @@ def random_balance_dataset(df: DataFrame) -> DataFrame:
     return df
 
 
+def store_in_big_file(big_file_path: str, experiment: DataFrame):
+    # Append to one big csv dataset
+    if os.path.isfile(big_file_path):
+        experiment.to_csv(big_file_path, mode='a', index=False, header=False)
+    else:
+        experiment = experiment.reset_index(drop=True)
+        experiment.to_csv(big_file_path, index=False)
+
+
 def main():
+    total_experiments: list[DataFrame] = []
     for file in os.listdir(DATASETS_PATH):
         if file.endswith('.mat'):
             dataset_path: str = os.path.join(DATASETS_PATH, file)
             df: DataFrame = to_dataframe(dataset_path)
             experiments: list[DataFrame] = split_experiments(df)
-
+                
             for idx, experiment in enumerate(experiments):
-                experiment = random_balance_dataset(experiment)
+                experiment = balance_dataset(experiment)
+                total_experiments.append(experiment)
+
+                # Store experiment in specific file            
                 file_name = os.path.splitext(file)[0] + f'_experiment_{idx}.csv'
                 treated_path = os.path.join(DATASETS_TREATED_PATH, file_name)
-
+                
                 experiment.to_csv(treated_path)
-
+    shuffle(total_experiments)
+    split_idx = int(len(total_experiments) * SPLIT_RATIO)
+    
+    for idx, experiment in enumerate(total_experiments):
+        file_path = f'{DATASETS_TREATED_PATH}/{TRAIN_FILE}' if idx <= split_idx else f'{DATASETS_TREATED_PATH}/{VALIDATION_FILE}'
+        store_in_big_file(file_path, experiment)
+      
 
 if __name__ == '__main__':
     main()
