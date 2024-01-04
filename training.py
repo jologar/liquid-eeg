@@ -25,12 +25,14 @@ def train_loop(dataloader: DataLoader, model, loss_fn, optimizer, device):
         batch_loading_time = (start_batch_training - start_batch_loading).total_seconds()
 
         last_batch = batch
-        X, y = X.unsqueeze(1).to(device), y.to(device)
+        # X, y = X.unsqueeze(1).to(device), y.to(device)
+        X, y = X.to(device), y.to(device)
 
         optimizer.zero_grad()
 
         # Compute prediction and loss
         pred, _ = model(X)
+        # loss = loss_fn(model.last_logits, y)
         loss = loss_fn(pred, y)
 
         # Backpropagation
@@ -64,8 +66,11 @@ def test_loop(dataloader: DataLoader, model, loss_fn, device):
     with torch.no_grad():
         for batch, (X, y) in enumerate(dataloader):
             last_batch = batch
-            X, y = X.unsqueeze(1).to(device), y.to(device)
+            # X, y = X.unsqueeze(1).to(device), y.to(device)
+            X, y = X.to(device), y.to(device)
+
             pred, _ = model(X)
+            # test_loss += loss_fn(model.last_logits, y).item()
             test_loss += loss_fn(pred, y).item()
             correct += torch.eq(torch.argmax(pred, dim=1), y).type(torch.float).sum().item()
 

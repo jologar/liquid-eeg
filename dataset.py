@@ -5,8 +5,9 @@ import torch
 from itertools import cycle
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
-TOTAL_FEATURES = 22    
-
+TOTAL_FEATURES = 22
+DEFAULT_FEATURES = ['Fp1','Fp2','F3','F4','C3','C4','P3','P4','O1','O2','A1','A2','F7','F8','T3','T4','T5','T6','Fz','Cz','Pz','X5']
+SAMPLE_FREQ = 200   # 200Hz
 
 class EEGIterableDataset(IterableDataset):
     def __init__(
@@ -24,16 +25,15 @@ class EEGIterableDataset(IterableDataset):
         self.sequence_overlap = sequence_overlap
         self.total_samples = total_samples
         self.csv_path = ds_path
+        self.features = features if features is not None else DEFAULT_FEATURES
+        self.columns = features.copy()
+        self.columns.append(target_label)
 
-        if features is not None:
-            features.append(target_label)
-        self.features = features
-        
         self.init_iterator()
 
     def init_iterator(self):
-        chunksize = self.sequence_length + (self.sequence_length - self.sequence_length*self.sequence_overlap)*800
-        self.data_iterator = pd.read_csv(self.csv_path, chunksize=chunksize, usecols=self.features)
+        chunksize = self.sequence_length + (self.sequence_length - self.sequence_length*self.sequence_overlap + 1)*100
+        self.data_iterator = pd.read_csv(self.csv_path, chunksize=chunksize, usecols=self.columns)
 
     def get_total_sequences(self) -> int | None:
         if self.total_samples is None: return None
@@ -44,25 +44,15 @@ class EEGIterableDataset(IterableDataset):
     def get_sequence_indexes(self, sample_idx: int) -> tuple[int, int]:
         seq_idx = int(sample_idx*self.sequence_length*self.sequence_overlap + self.sequence_length)
         seq_start_idx = seq_idx - self.sequence_length
-
-        return seq_start_idx, seq_idx
+        return seq_start_idx, seq_idx - 1
 
     def get_stream(self):
-        test = 0
         for chunk in self.data_iterator:
-            # print(f'>>>>>>>>>>>>>>>>>>>>>>>>>> CHUNK {test} {len(chunk)}')
-            # print(f'>>>>>>>>>>>>> INDEXES: {chunk.index}')
             chunk = chunk.reset_index(drop=True)
-            # print(f'>>>>>>>>>>>>>>>>>>>> CHUNK HEAD: {chunk.shape}')
 
-            test += 1
             sample_idx = 0
             seq_start_idx, seq_idx = self.get_sequence_indexes(sample_idx)
             while seq_idx < len(chunk):
-                # print(f'>>>>>>>>> SEQ INDEXES: {sample_idx} {seq_idx} {seq_start_idx}')
-                # if sample_idx in [21, 22, 23]:
-                #     print(f'>>>>>>>>>>> SAMPLE {sample_idx}')
-                #     print(f'>>>>>>>> X : {chunk.loc[seq_start_idx:seq_idx, chunk.columns != self.target_label].values}')
                 X = torch.tensor(chunk.loc[seq_start_idx:seq_idx, chunk.columns != self.target_label].values).type(torch.FloatTensor)
                 y = torch.tensor(chunk[self.target_label][seq_idx]).type(torch.LongTensor)
 
@@ -75,9 +65,6 @@ class EEGIterableDataset(IterableDataset):
         return self.get_stream()
                 
 
-
-
-# Define custom dataset to load sequences
 class EEGDataset(Dataset):
     def __init__(
         self,

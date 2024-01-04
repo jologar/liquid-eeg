@@ -1,17 +1,101 @@
 {
-    "train_epochs": 15,
+    "train_epochs": 20,
     "experiments": [
         {
-            "name": "jandenawer1",
+            "name": "jandenawer01",
             "target_label": "Marker",
             "learning_rate": 1e-3,
             "decay_rate": 0.96,
-            "liquid_units": 225,
-            "dropout": 0.2,
+            "liquid_units": 50,
+            "dropout": 0.25,
             "batch_size": 512,
-            "sequence_length": 40,
-            "sequence_overlap": 0.7,
-            "features": null
+            "sequence_length": 20,
+            "sequence_overlap": 0.5,
+            "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
+        },
+        {
+            "name": "jandenawer02",
+            "target_label": "Marker",
+            "learning_rate": 1e-3,
+            "decay_rate": 0.96,
+            "liquid_units": 250,
+            "dropout": 0.25,
+            "batch_size": 512,
+            "sequence_length": 20,
+            "sequence_overlap": 0.5,
+            "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
+        },
+        {
+            "name": "jandenawer03",
+            "target_label": "Marker",
+            "learning_rate": 1e-3,
+            "decay_rate": 0.96,
+            "liquid_units": 50,
+            "dropout": 0.25,
+            "batch_size": 512,
+            "sequence_length": 60,
+            "sequence_overlap": 0.5,
+            "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
+        },
+        {
+            "name": "jandenawer04",
+            "target_label": "Marker",
+            "learning_rate": 1e-3,
+            "decay_rate": 0.96,
+            "liquid_units": 80,
+            "dropout": 0.25,
+            "batch_size": 512,
+            "sequence_length": 60,
+            "sequence_overlap": 0.5,
+            "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
+        },
+        {
+            "name": "jandenawer05",
+            "target_label": "Marker",
+            "learning_rate": 1e-3,
+            "decay_rate": 0.96,
+            "liquid_units": 80,
+            "dropout": 0.25,
+            "batch_size": 512,
+            "sequence_length": 30,
+            "sequence_overlap": 0.5,
+            "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
+        },
+        {
+            "name": "jandenawer06",
+            "target_label": "Marker",
+            "learning_rate": 1e-3,
+            "decay_rate": 0.96,
+            "liquid_units": 120,
+            "dropout": 0.25,
+            "batch_size": 512,
+            "sequence_length": 100,
+            "sequence_overlap": 0.5,
+            "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
+        },
+        {
+            "name": "jandenawer07",
+            "target_label": "Marker",
+            "learning_rate": 1e-3,
+            "decay_rate": 0.96,
+            "liquid_units": 200,
+            "dropout": 0.25,
+            "batch_size": 512,
+            "sequence_length": 100,
+            "sequence_overlap": 0.5,
+            "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
+        },
+        {
+            "name": "jandenawer08",
+            "target_label": "Marker",
+            "learning_rate": 1e-3,
+            "decay_rate": 0.96,
+            "liquid_units": 500,
+            "dropout": 0.25,
+            "batch_size": 512,
+            "sequence_length": 30,
+            "sequence_overlap": 0.5,
+            "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
         }
     ]
 }

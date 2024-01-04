@@ -3,13 +3,13 @@ import json
 
 import torch
 from pydantic import BaseModel
-from torch.nn import CrossEntropyLoss
+from torch.nn import CrossEntropyLoss, NLLLoss
 from torch.optim import Adam
-from torch.optim.lr_scheduler import ExponentialLR
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 
 from dataset import TOTAL_FEATURES, EEGDataset, EEGIterableDataset
-from model import LiquidEEG, count_parameters
+from model import ParallelConvLiquidEEG, count_parameters
 from training import EPOCHS, test_loop, train_loop
 
 TRAIN_DS = './datasets/csv/train-eeg-data.csv'
@@ -38,15 +38,16 @@ class Experiment:
         self.device = device
         num_features = TOTAL_FEATURES if config.features is None else len(config.features)
 
-        self.loss_fn = CrossEntropyLoss()
-        self.model = LiquidEEG(
+        self.loss_fn = NLLLoss()
+        self.model = ParallelConvLiquidEEG(
             liquid_units=config.liquid_units,
+            seq_length=config.sequence_length,
             num_classes=num_classes,
-            sensory_units=num_features,
+            eeg_channels=num_features, # TODO: Parametrize
             dropout=config.dropout,
         ).to(device)
         self.optimizer = Adam(params=self.model.parameters(), lr=config.learning_rate)
-        self.lr_scheduler = ExponentialLR(optimizer=self.optimizer, gamma=config.decay_rate, verbose=True)
+        self.lr_scheduler = ReduceLROnPlateau(self.optimizer, mode='min', verbose=True)
 
     def start_training(self, num_epochs: int, train_ds: EEGIterableDataset, valid_ds: EEGDataset):
         # Datasets
@@ -59,15 +60,16 @@ class Experiment:
             print(f"Epoch {t+1}\n-------------------------------")
             train_loss, train_acc = train_loop(train_loader, self.model, self.loss_fn, self.optimizer, self.device)
             test_loss, test_acc = test_loop(valid_loader, self.model, self.loss_fn, self.device)
-            self.lr_scheduler.step()
+            self.lr_scheduler.step(test_loss)
             epoch = {'val': {'loss': test_loss, 'acc': test_acc}, 'train': {'loss': train_loss, 'acc': train_acc}}
+            print(epoch)
             experiment_history.append(epoch)
             train_loader.dataset.init_iterator()
             valid_loader.dataset.init_iterator()
-        self.log_experiment(experiment_history=experiment_history, num_samples=train_ds.__len__())
+        self.log_experiment(experiment_history=experiment_history)
         print("Done!")
 
-    def log_experiment(self, experiment_history: list[dict], num_samples: int):
+    def log_experiment(self, experiment_history: list[dict]):
         train_log = {
             'num_params': count_parameters(self.model),
             'decay_rate': self.config.decay_rate,
@@ -79,7 +81,6 @@ class Experiment:
             'sequence_overlap': self.config.sequence_overlap,
             'dropout': self.config.dropout,
             'features': self.config.features,
-            'train_samples': num_samples,
             'train_history': experiment_history,
         }
 

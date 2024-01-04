@@ -116,6 +116,7 @@ def main():
                 
             for idx, experiment in enumerate(experiments):
                 experiment = balance_dataset(experiment)
+                # experiment.drop(experiment[experiment['Marker'] == 0].index, inplace=True)
                 total_experiments.append(experiment)
 
                 # Store experiment in specific file            
@@ -130,6 +131,25 @@ def main():
         file_path = f'{DATASETS_TREATED_PATH}/{TRAIN_FILE}' if idx <= split_idx else f'{DATASETS_TREATED_PATH}/{VALIDATION_FILE}'
         store_in_big_file(file_path, experiment)
       
+
+def raw():
+    files = os.listdir(DATASETS_PATH)
+    shuffle(files)
+    split_idx = int(len(files) * SPLIT_RATIO)
+    
+    for idx, file in enumerate(files):
+        if file.endswith('.mat'):
+            dataset_path: str = os.path.join(DATASETS_PATH, file)
+            df: DataFrame = to_dataframe(dataset_path)
+
+            dest_file_name = './datasets/csv/raw-train-eeg-data.csv' if idx <= split_idx else './datasets/csv/raw-validation-eeg-data.csv'
+
+            # Append to one big csv dataset
+            if os.path.isfile(dest_file_name):
+                df.to_csv(dest_file_name, mode='a', index=False, header=False)
+            else:
+                df = df.reset_index(drop=True)
+                df.to_csv(dest_file_name, index=False)
 
 if __name__ == '__main__':
     main()
