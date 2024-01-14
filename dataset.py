@@ -1,13 +1,11 @@
-import numpy as np
 import pandas as pd
-import torch
 
-from itertools import cycle
-from torch.utils.data import DataLoader, Dataset, IterableDataset
+from torch.utils.data import Dataset, IterableDataset
 
 TOTAL_FEATURES = 22
 DEFAULT_FEATURES = ['Fp1','Fp2','F3','F4','C3','C4','P3','P4','O1','O2','A1','A2','F7','F8','T3','T4','T5','T6','Fz','Cz','Pz','X5']
 SAMPLE_FREQ = 200   # 200Hz
+CHUNK_MULTIPLICATOR = 50
 
 class EEGIterableDataset(IterableDataset):
     def __init__(
@@ -32,7 +30,7 @@ class EEGIterableDataset(IterableDataset):
         self.init_iterator()
 
     def init_iterator(self):
-        chunksize = self.sequence_length + (self.sequence_length - self.sequence_length*self.sequence_overlap + 1)*100
+        chunksize = self.sequence_length + (self.sequence_length - self.sequence_length*self.sequence_overlap + 1)*CHUNK_MULTIPLICATOR
         self.data_iterator = pd.read_csv(self.csv_path, chunksize=chunksize, usecols=self.columns)
 
     def get_total_sequences(self) -> int | None:
@@ -53,8 +51,8 @@ class EEGIterableDataset(IterableDataset):
             sample_idx = 0
             seq_start_idx, seq_idx = self.get_sequence_indexes(sample_idx)
             while seq_idx < len(chunk):
-                X = torch.tensor(chunk.loc[seq_start_idx:seq_idx, chunk.columns != self.target_label].values).type(torch.FloatTensor)
-                y = torch.tensor(chunk[self.target_label][seq_idx]).type(torch.LongTensor)
+                X = chunk.loc[seq_start_idx:seq_idx, chunk.columns != self.target_label].values
+                y = chunk[self.target_label][seq_idx]
 
                 sample_idx += 1
                 seq_start_idx, seq_idx = self.get_sequence_indexes(sample_idx)
@@ -112,12 +110,12 @@ class EEGDataset(Dataset):
         overlap = self.sequence_overlap if self.sequence_overlap > 0 else 1
         return int((len(self.eeg_data) - self.sequence_length) / (self.sequence_length * overlap))
     
-    def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, index: int) -> tuple:
         index = int(index*self.sequence_length*self.sequence_overlap + self.sequence_length)
         seq_start_idx = index - self.sequence_length
 
-        X = torch.tensor(self.eeg_data[self.features][seq_start_idx:index].values).type(torch.FloatTensor)
-        y = torch.tensor(self.eeg_data[self.target_label][index]).type(torch.LongTensor)
+        X = self.eeg_data[self.features][seq_start_idx:index].values
+        y = self.eeg_data[self.target_label][index]
         return X, y
     
     def split(self, split_ratio: float = 0.8) -> tuple:

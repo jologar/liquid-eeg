@@ -7,9 +7,10 @@ from torch.nn import CrossEntropyLoss, NLLLoss
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
+from constants import DEVICE
 
 from dataset import TOTAL_FEATURES, EEGDataset, EEGIterableDataset
-from model import ParallelConvLiquidEEG, count_parameters
+from model import ConvLiquidEEG, count_parameters
 from training import EPOCHS, test_loop, train_loop
 
 TRAIN_DS = './datasets/csv/train-eeg-data.csv'
@@ -38,8 +39,8 @@ class Experiment:
         self.device = device
         num_features = TOTAL_FEATURES if config.features is None else len(config.features)
 
-        self.loss_fn = NLLLoss()
-        self.model = ParallelConvLiquidEEG(
+        self.loss_fn = CrossEntropyLoss()
+        self.model = ConvLiquidEEG(
             liquid_units=config.liquid_units,
             seq_length=config.sequence_length,
             num_classes=num_classes,
@@ -101,15 +102,9 @@ class ExperimentFramework:
             self.epochs = experimental_config.get('train_epochs', EPOCHS)
             config_list = [ExperimentConfig(**data) for data in experimental_config.get('experiments', [])]
 
-        device = (
-            "cuda"
-            if torch.cuda.is_available()
-            else "mps"
-            if torch.backends.mps.is_available()
-            else "cpu"
-        )
 
-        self.experiments = [Experiment(config=config, num_classes=NUM_CLASSES, device=device) for config in config_list]
+
+        self.experiments = [Experiment(config=config, num_classes=NUM_CLASSES, device=DEVICE) for config in config_list]
 
     def start(self):
         for experiment in self.experiments:

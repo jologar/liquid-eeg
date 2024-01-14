@@ -1,17 +1,17 @@
 {
-    "train_epochs": 20,
+    "train_epochs": 40,
     "experiments": [
         {
             "name": "jandenawer01",
             "target_label": "Marker",
             "learning_rate": 1e-3,
             "decay_rate": 0.96,
-            "liquid_units": 50,
+            "liquid_units": 150,
             "dropout": 0.25,
             "batch_size": 512,
-            "sequence_length": 20,
+            "sequence_length": 100,
             "sequence_overlap": 0.5,
-            "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
+            "features": ["Fp1","F3","C3","P3","A1","T3","T5","Cz","X5"]
         },
         {
             "name": "jandenawer02",
@@ -21,7 +21,7 @@
             "liquid_units": 250,
             "dropout": 0.25,
             "batch_size": 512,
-            "sequence_length": 20,
+            "sequence_length": 50,
             "sequence_overlap": 0.5,
             "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
         },
@@ -57,8 +57,8 @@
             "liquid_units": 80,
             "dropout": 0.25,
             "batch_size": 512,
-            "sequence_length": 30,
-            "sequence_overlap": 0.5,
+            "sequence_length": 100,
+            "sequence_overlap": 0.9,
             "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
         },
         {
@@ -93,7 +93,19 @@
             "liquid_units": 500,
             "dropout": 0.25,
             "batch_size": 512,
-            "sequence_length": 30,
+            "sequence_length": 100,
+            "sequence_overlap": 0.5,
+            "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
+        },
+        {
+            "name": "jandenawer09",
+            "target_label": "Marker",
+            "learning_rate": 1e-3,
+            "decay_rate": 0.96,
+            "liquid_units": 200,
+            "dropout": 0.25,
+            "batch_size": 64,
+            "sequence_length": 20,
             "sequence_overlap": 0.5,
             "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
         }
