@@ -1,7 +1,6 @@
 import datetime
 import json
 
-import torch
 from pydantic import BaseModel
 from torch.nn import CrossEntropyLoss, NLLLoss
 from torch.optim import Adam

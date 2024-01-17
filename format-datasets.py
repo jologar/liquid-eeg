@@ -17,6 +17,7 @@ RHO_THRESHOLD = 10
 REST_STATE = 91
 EXPERIMENT_FINISH = 92
 INITAL_RELAX = 99
+INVALID_STATE = 90
 SPLIT_RATIO = 0.8
 
 
@@ -30,6 +31,10 @@ def to_dataframe(matlab_file: str) -> DataFrame:
     df = DataFrame(content['data'][0][0], columns=headers)
     # Add markers column
     df['Marker'] = content['marker'][0][0]
+
+    # Delete invalid marker states
+    df = df.drop(df.loc[df['Marker'] == INVALID_STATE].index)
+    df = df.reset_index(drop=True)
 
     return df
 
@@ -109,6 +114,7 @@ def store_in_big_file(big_file_path: str, experiment: DataFrame):
 def main():
     total_experiments: list[DataFrame] = []
     for file in os.listdir(DATASETS_PATH):
+        print(file)
         if file.endswith('.mat'):
             dataset_path: str = os.path.join(DATASETS_PATH, file)
             df: DataFrame = to_dataframe(dataset_path)
