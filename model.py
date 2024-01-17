@@ -23,40 +23,21 @@ class ConvolutionalBlock(nn.Module):
         super().__init__()
 
         self.cnn = nn.Sequential(
-            # nn.Conv2d(in_channels=1, out_channels=32, kernel_size=2, stride=1),
+            nn.Conv2d(in_channels=1, out_channels=32, kernel_size=5, stride=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+
+            # nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=1),
             # nn.BatchNorm2d(32),
             # nn.ReLU(),
-            # # nn.Dropout2d(p=dropout),
-            # nn.MaxPool2d(kernel_size=3, stride=2),
+            # nn.MaxPool2d(kernel_size=2, stride=2),
 
-            # nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=1),
-            # nn.BatchNorm2d(32),
-            # nn.ReLU(),
-            # # nn.Dropout2d(p=dropout),
-            # nn.MaxPool2d(kernel_size=3, stride=2),
-
-            # nn.Conv2d(in_channels=32, out_channels=1, kernel_size=2, stride=1),
-            # nn.BatchNorm2d(1),
-            # nn.ReLU(),
-            # nn.Dropout2d(p=dropout)
-
-            nn.Conv2d(in_channels=1, out_channels=64, kernel_size=5, stride=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.Dropout2d(p=dropout),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.Dropout2d(p=dropout),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-
-            nn.Conv2d(in_channels=64, out_channels=1, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(in_channels=32, out_channels=1, kernel_size=7, stride=1),
             nn.BatchNorm2d(1),
             nn.ReLU(),
             nn.Dropout2d(p=dropout),
-            # nn.MaxPool2d(kernel_size=2, stride=2)
+            nn.MaxPool2d(kernel_size=3, stride=2)
         )
     
     def forward(self, x):
@@ -69,12 +50,9 @@ class ConvLiquidEEG(nn.Module):
         self.last_logits = None
         self.preprocessing = EEGBandsPreprocessing()
         self.conv_block = ConvolutionalBlock(dropout=dropout)
-        self.liquid_block = LiquidBlock(units=liquid_units, out_features=num_classes, in_features=8)
+        # TODO Parametrize in features
+        self.liquid_block = LiquidBlock(units=liquid_units, out_features=num_classes, in_features=22)
 
-        # self.linear = nn.Sequential(
-        #     nn.LazyLinear(in_features=num_classes, out_features=num_classes),
-        #     nn.ReLU(),
-        # )
         self.softmax = nn.LogSoftmax(dim=0)
 
     def forward(self, x, state=None):

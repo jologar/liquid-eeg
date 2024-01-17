@@ -16,7 +16,7 @@ TRAIN_DS = './datasets/csv/train-eeg-data.csv'
 VALID_DS = './datasets/csv/validation-eeg-data.csv'
 BIG_DATASET_PATH = './datasets/csv/eeg-data.csv'
 BIG_VALIDATION_DATASET_PATH = './datasets/csv/validation-eeg-data.csv'
-NUM_CLASSES = 7
+NUM_CLASSES = 4
 
 
 class ExperimentConfig(BaseModel):
