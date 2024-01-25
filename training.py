@@ -1,7 +1,6 @@
 # Train NN
 import datetime
 
-import pandas as pd
 import torch
 
 from torch.utils.data import DataLoader
@@ -23,9 +22,9 @@ def train_loop(dataloader: DataLoader, model, loss_fn, optimizer, device):
     for batch, (X, y) in enumerate(dataloader):
         start_batch_training = datetime.datetime.now()
         batch_loading_time = (start_batch_training - start_batch_loading).total_seconds()
-
+  
         last_batch = batch
-        X, y = X, y.to(device)
+        X, y = X.requires_grad_(True), y.to(device)
 
         optimizer.zero_grad()
 
@@ -52,15 +51,10 @@ def train_loop(dataloader: DataLoader, model, loss_fn, optimizer, device):
 
 
 def test_loop(dataloader: DataLoader, model, loss_fn, device):
-    # Set the model to evaluation mode - important for batch normalization and dropout layers
-    # Unnecessary in this situation but added for best practices
     model.eval()
-    # size = dataloader.dataset.__len__()
-    # num_batches = len(dataloader)
+
     test_loss, correct = 0, 0
-    last_batch = 0
-    # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
-    # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
+
     with torch.no_grad():
         for batch, (X, y) in enumerate(dataloader):
             last_batch = batch

@@ -4,11 +4,11 @@
         {
             "name": "jandenawer01",
             "target_label": "Marker",
-            "learning_rate": 1e-4,
+            "learning_rate": 1e-5,
             "decay_rate": 0.96,
             "liquid_units": 150,
             "dropout": 0.25,
-            "batch_size": 512,
+            "batch_size": 300,
             "sequence_length": 100,
             "sequence_overlap": 0.5,
             "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
@@ -16,11 +16,11 @@
         {
             "name": "jandenawer02",
             "target_label": "Marker",
-            "learning_rate": 1e-4,
+            "learning_rate": 1e-5,
             "decay_rate": 0.96,
             "liquid_units": 250,
             "dropout": 0.25,
-            "batch_size": 512,
+            "batch_size": 400,
             "sequence_length": 50,
             "sequence_overlap": 0.5,
             "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
@@ -28,11 +28,11 @@
         {
             "name": "jandenawer03",
             "target_label": "Marker",
-            "learning_rate": 1e-4,
+            "learning_rate": 1e-5,
             "decay_rate": 0.96,
             "liquid_units": 50,
             "dropout": 0.25,
-            "batch_size": 512,
+            "batch_size": 400,
             "sequence_length": 60,
             "sequence_overlap": 0.5,
             "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
@@ -40,11 +40,11 @@
         {
             "name": "jandenawer04",
             "target_label": "Marker",
-            "learning_rate": 1e-4,
+            "learning_rate": 1e-5,
             "decay_rate": 0.96,
             "liquid_units": 80,
             "dropout": 0.25,
-            "batch_size": 512,
+            "batch_size": 400,
             "sequence_length": 60,
             "sequence_overlap": 0.5,
             "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
@@ -52,11 +52,11 @@
         {
             "name": "jandenawer05",
             "target_label": "Marker",
-            "learning_rate": 1e-4,
+            "learning_rate": 1e-5,
             "decay_rate": 0.96,
             "liquid_units": 80,
             "dropout": 0.25,
-            "batch_size": 512,
+            "batch_size": 400,
             "sequence_length": 100,
             "sequence_overlap": 0.9,
             "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
@@ -64,11 +64,11 @@
         {
             "name": "jandenawer06",
             "target_label": "Marker",
-            "learning_rate": 1e-4,
+            "learning_rate": 1e-5,
             "decay_rate": 0.96,
             "liquid_units": 120,
             "dropout": 0.25,
-            "batch_size": 512,
+            "batch_size": 400,
             "sequence_length": 100,
             "sequence_overlap": 0.5,
             "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
@@ -76,11 +76,11 @@
         {
             "name": "jandenawer07",
             "target_label": "Marker",
-            "learning_rate": 1e-4,
+            "learning_rate": 1e-5,
             "decay_rate": 0.96,
             "liquid_units": 200,
             "dropout": 0.25,
-            "batch_size": 512,
+            "batch_size": 400,
             "sequence_length": 100,
             "sequence_overlap": 0.5,
             "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
@@ -88,11 +88,11 @@
         {
             "name": "jandenawer08",
             "target_label": "Marker",
-            "learning_rate": 1e-4,
+            "learning_rate": 1e-5,
             "decay_rate": 0.96,
             "liquid_units": 500,
             "dropout": 0.25,
-            "batch_size": 512,
+            "batch_size": 400,
             "sequence_length": 100,
             "sequence_overlap": 0.5,
             "features": ["Fp1","Fp2","F3","F4","C3","C4","P3","P4","O1","O2","A1","A2","F7","F8","T3","T4","T5","T6","Fz","Cz","Pz","X5"]
@@ -100,7 +100,7 @@
         {
             "name": "jandenawer09",
             "target_label": "Marker",
-            "learning_rate": 1e-4,
+            "learning_rate": 1e-5,
             "decay_rate": 0.96,
             "liquid_units": 200,
             "dropout": 0.25,

@@ -31,9 +31,16 @@ class EEGBandsPreprocessing(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         x = x.detach().cpu()
-        band_decomposed_x = torch.cat([Tensor(sosfilt(sos=sos, x=x, axis=1)) for sos in self.sos_list], dim=-1).to(device=DEVICE)
+        band_decomposed_x = torch.cat([Tensor(sosfilt(sos=sos, x=x, axis=1)) for sos in self.sos_list], dim=-1).requires_grad_(True).to(device=DEVICE)
         return band_decomposed_x
 
+
+class EEGBandsPreprocessingMne(nn.Module):
+    def forward(self, x: Tensor) -> Tensor:
+        print(f'>>>>>>>>> INPUT: {x.shape}')
+        x = x.detach().cpu().transpose(dim0=-2, dim1=-1).data.numpy(force=True)
+        print(f'>>>>>>>>> INPUT 2: {x.shape}')
+        
 
 
 class EEGPreprocessing(nn.Module):

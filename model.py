@@ -4,7 +4,20 @@ from ncps.wirings import AutoNCP
 from ncps.torch import CfC
 from constants import DEVICE
 
-from preprocessing import EEGBandsPreprocessing, EEG_BANDS
+from preprocessing import EEGBandsPreprocessingMne, EEG_BANDS
+
+
+class OnlyLiquidEEG(nn.Module):
+    def __init__(self, liquid_units=50, num_classes=2, channels=4):
+        super().__init__()
+        self.liquid_block = LiquidBlock(units=liquid_units, out_features=num_classes, in_features=channels)
+        self.softmax = nn.Softmax(dim=0)
+
+    def forward(self, x, state=None):
+        x, hx = self.liquid_block.forward(torch.squeeze(x, dim=1), state)
+        return self.softmax(x), hx
+
+
 
 class LiquidBlock(nn.Module):
     def __init__(self, units=20, out_features=10, in_features=5):
@@ -23,21 +36,23 @@ class ConvolutionalBlock(nn.Module):
         super().__init__()
 
         self.cnn = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=32, kernel_size=5, stride=1),
+            nn.Conv2d(in_channels=1, out_channels=32, kernel_size=2, stride=1, padding='same'),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=3, stride=2),
+            # nn.Dropout(p=dropout),
+            nn.MaxPool2d(kernel_size=3, stride=(1, 2)),
 
-            # nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=1),
-            # nn.BatchNorm2d(32),
-            # nn.ReLU(),
-            # nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=1, padding='same'),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            # nn.Dropout(p=dropout),
+            nn.MaxPool2d(kernel_size=3, stride=(1, 2)),
 
-            nn.Conv2d(in_channels=32, out_channels=1, kernel_size=7, stride=1),
+            nn.Conv2d(in_channels=32, out_channels=1, kernel_size=5, stride=1, padding='same'),
             nn.BatchNorm2d(1),
             nn.ReLU(),
             nn.Dropout2d(p=dropout),
-            nn.MaxPool2d(kernel_size=3, stride=2)
+            nn.MaxPool2d(kernel_size=(1, 3), stride=(1, 2))
         )
     
     def forward(self, x):
@@ -48,22 +63,22 @@ class ConvLiquidEEG(nn.Module):
     def __init__(self, liquid_units=20, seq_length=100, num_classes=10, eeg_channels=5, dropout=1):
         super().__init__()
         self.last_logits = None
-        self.preprocessing = EEGBandsPreprocessing()
+        self.preprocessing = EEGBandsPreprocessingMne()
         self.conv_block = ConvolutionalBlock(dropout=dropout)
         # TODO Parametrize in features
-        self.liquid_block = LiquidBlock(units=liquid_units, out_features=num_classes, in_features=22)
+        self.liquid_block = LiquidBlock(units=liquid_units, out_features=num_classes, in_features=12)
 
-        self.softmax = nn.LogSoftmax(dim=0)
+        self.softmax = nn.Softmax(dim=0)
 
     def forward(self, x, state=None):
+        x = x.unsqueeze(1).type(torch.FloatTensor).requires_grad_(True).to(DEVICE)
         # print(f'>>>>>>> INPUT: {x.shape}')
         x = self.preprocessing(x)
         # print(f'>>>>>>>>> PRE OUTPUT: {x.shape}')
-        x = self.conv_block(x.unsqueeze(1))
+        x = self.conv_block(x)
         # print(f'>>>>>>>>>> CONV OUTPUT SHAPE: {x.shape}')
-        x, hx = self.liquid_block.forward(torch.squeeze(x), state)
+        x, hx = self.liquid_block.forward(torch.squeeze(x, dim=1), state)
         # print(f'>>>>>>>>> LIQUID OUT: {x.shape}')
-        # x = self.linear(x)
         self.last_logits = x
         return self.softmax(x), hx
 
@@ -73,7 +88,7 @@ class ParallelConvLiquidEEG(nn.Module):
         super().__init__()
         self.last_logits = None
         
-        self.preprocessing = EEGBandsPreprocessing()
+        self.preprocessing = EEGBandsPreprocessingMne()
         self.conv_block = ConvolutionalBlock(seq_length=seq_length, dropout=dropout)
         self.conv_flatten = nn.Sequential(
             nn.Flatten(),

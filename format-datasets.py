@@ -111,7 +111,7 @@ def store_in_big_file(big_file_path: str, experiment: DataFrame):
         experiment.to_csv(big_file_path, index=False)
 
 
-def main():
+def main(compile_and_split: bool = False):
     total_experiments: list[DataFrame] = []
     for file in os.listdir(DATASETS_PATH):
         print(file)
@@ -130,12 +130,14 @@ def main():
                 treated_path = os.path.join(DATASETS_TREATED_PATH, file_name)
                 
                 experiment.to_csv(treated_path)
-    shuffle(total_experiments)
-    split_idx = int(len(total_experiments) * SPLIT_RATIO)
     
-    for idx, experiment in enumerate(total_experiments):
-        file_path = f'{DATASETS_TREATED_PATH}/{TRAIN_FILE}' if idx <= split_idx else f'{DATASETS_TREATED_PATH}/{VALIDATION_FILE}'
-        store_in_big_file(file_path, experiment)
+    if compile_and_split:
+        shuffle(total_experiments)
+        split_idx = int(len(total_experiments) * SPLIT_RATIO)
+        
+        for idx, experiment in enumerate(total_experiments):
+            file_path = f'{DATASETS_TREATED_PATH}/{TRAIN_FILE}' if idx <= split_idx else f'{DATASETS_TREATED_PATH}/{VALIDATION_FILE}'
+            store_in_big_file(file_path, experiment)
       
 
 def raw():

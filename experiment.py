@@ -3,7 +3,7 @@ import json
 
 from pydantic import BaseModel
 from torch.nn import CrossEntropyLoss, NLLLoss
-from torch.optim import Adam
+from torch.optim import Adam, RMSprop
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from constants import DEVICE
@@ -12,10 +12,6 @@ from dataset import TOTAL_FEATURES, EEGDataset, EEGIterableDataset
 from model import ConvLiquidEEG, count_parameters
 from training import EPOCHS, test_loop, train_loop
 
-TRAIN_DS = './datasets/csv/train-eeg-data.csv'
-VALID_DS = './datasets/csv/validation-eeg-data.csv'
-BIG_DATASET_PATH = './datasets/csv/eeg-data.csv'
-BIG_VALIDATION_DATASET_PATH = './datasets/csv/validation-eeg-data.csv'
 NUM_CLASSES = 4
 
 
@@ -47,7 +43,7 @@ class Experiment:
             dropout=config.dropout,
         ).to(device)
         self.optimizer = Adam(params=self.model.parameters(), lr=config.learning_rate)
-        self.lr_scheduler = ReduceLROnPlateau(self.optimizer, mode='min', verbose=True)
+        self.lr_scheduler = ReduceLROnPlateau(self.optimizer, mode='min', verbose=True, patience=1)
 
     def start_training(self, num_epochs: int, train_ds: EEGIterableDataset, valid_ds: EEGDataset):
         # Datasets
@@ -60,7 +56,7 @@ class Experiment:
             print(f"Epoch {t+1}\n-------------------------------")
             train_loss, train_acc = train_loop(train_loader, self.model, self.loss_fn, self.optimizer, self.device)
             test_loss, test_acc = test_loop(valid_loader, self.model, self.loss_fn, self.device)
-            self.lr_scheduler.step(test_loss)
+            self.lr_scheduler.step(train_loss)
             epoch = {'val': {'loss': test_loss, 'acc': test_acc}, 'train': {'loss': train_loss, 'acc': train_acc}}
             print(epoch)
             experiment_history.append(epoch)
