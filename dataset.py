@@ -231,7 +231,7 @@ class KFoldSplitDataset(Dataset):
         test_fold_end = test_fold_start + self.test_fold_size
 
         test_files = self.csv_files[test_fold_start:test_fold_end]
-        train_files = [file for file, idx in enumerate(self.csv_files) if index not in range(test_fold_start, test_fold_end)]
+        train_files = [file for file, idx in enumerate(self.csv_files) if idx not in range(test_fold_start, test_fold_end)]
 
         train_ds = CsvEEGIterableDataset(
             csv_files=train_files,
