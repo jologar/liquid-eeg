@@ -55,8 +55,10 @@ class Experiment:
     def train_model(self, num_epochs: int, train_ds: IterableDataset, valid_ds: IterableDataset, test_ds: IterableDataset) -> tuple:
 
         if os.path.exists('./temp'):
-            os.removedirs('./temp')
-        os.makedirs('./temp')
+            temp_files = glob.glob('./temp/*')
+            for temp_file in temp_files: os.remove(temp_file)
+        else:
+            os.makedirs('./temp')         
 
         # Datasets
         # Dataloaders
