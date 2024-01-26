@@ -4,7 +4,7 @@ from ncps.wirings import AutoNCP
 from ncps.torch import CfC
 from constants import DEVICE
 
-from preprocessing import EEGBandsPreprocessingMne, EEG_BANDS
+from preprocessing import EEGBandsPreprocessing, EEG_BANDS
 
 
 class OnlyLiquidEEG(nn.Module):
@@ -63,23 +63,22 @@ class ConvLiquidEEG(nn.Module):
     def __init__(self, liquid_units=20, seq_length=100, num_classes=10, eeg_channels=5, dropout=1):
         super().__init__()
         self.last_logits = None
-        self.preprocessing = EEGBandsPreprocessingMne()
+        self.preprocessing = EEGBandsPreprocessing()
         self.conv_block = ConvolutionalBlock(dropout=dropout)
         # TODO Parametrize in features
-        self.liquid_block = LiquidBlock(units=liquid_units, out_features=num_classes, in_features=12)
+        self.liquid_block = LiquidBlock(units=liquid_units, out_features=num_classes, in_features=2)
 
-        self.softmax = nn.Softmax(dim=0)
+        self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x, state=None):
-        x = x.unsqueeze(1).type(torch.FloatTensor).requires_grad_(True).to(DEVICE)
+        x = x.unsqueeze(1).type(torch.cuda.FloatTensor)
         # print(f'>>>>>>> INPUT: {x.shape}')
-        x = self.preprocessing(x)
+        # x = self.preprocessing(x)
         # print(f'>>>>>>>>> PRE OUTPUT: {x.shape}')
         x = self.conv_block(x)
         # print(f'>>>>>>>>>> CONV OUTPUT SHAPE: {x.shape}')
         x, hx = self.liquid_block.forward(torch.squeeze(x, dim=1), state)
         # print(f'>>>>>>>>> LIQUID OUT: {x.shape}')
-        self.last_logits = x
         return self.softmax(x), hx
 
 
@@ -88,7 +87,7 @@ class ParallelConvLiquidEEG(nn.Module):
         super().__init__()
         self.last_logits = None
         
-        self.preprocessing = EEGBandsPreprocessingMne()
+        self.preprocessing = EEGBandsPreprocessing()
         self.conv_block = ConvolutionalBlock(seq_length=seq_length, dropout=dropout)
         self.conv_flatten = nn.Sequential(
             nn.Flatten(),

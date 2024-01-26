@@ -11,11 +11,9 @@ def train_loop(dataloader: DataLoader, model, loss_fn, optimizer, device):
     # Set the model to training mode - important for batch normalization and dropout layers
     # Unnecessary in this situation but added for best practices
     model.train()
+    model.to(device)
     total_start = datetime.datetime.now()
     correct, train_loss = 0, 0
-    total_seq = dataloader.dataset.get_total_sequences()
-
-
     # size = dataloader.dataset.__len__()
     last_batch = 0
     start_batch_loading = datetime.datetime.now()
@@ -24,15 +22,15 @@ def train_loop(dataloader: DataLoader, model, loss_fn, optimizer, device):
         batch_loading_time = (start_batch_training - start_batch_loading).total_seconds()
   
         last_batch = batch
-        X, y = X.requires_grad_(True), y.to(device)
+        X, y = X.to(device), y.to(device)
 
-        optimizer.zero_grad()
 
         # Compute prediction and loss
         pred, _ = model(X)
         loss = loss_fn(pred, y)
 
         # Backpropagation
+        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
@@ -43,22 +41,22 @@ def train_loop(dataloader: DataLoader, model, loss_fn, optimizer, device):
         start_batch_loading = datetime.datetime.now()
         if batch % 10 == 0:
             loss, current = loss.item(), (batch + 1) * len(X)
-            print(f"loss: {loss:>7f}  [{current:>5d}/{total_seq}] training time ratio: {batch_training_time / (batch_training_time + batch_loading_time)}")
+            print(f"loss: {loss:>7f}  [{current:>5d}] training time ratio: {batch_training_time / (batch_training_time + batch_loading_time)}")
     last_batch += 1
     print(f'Training time: {(datetime.datetime.now() - total_start).total_seconds()}')
     correct /= last_batch*dataloader.batch_size
     return train_loss / last_batch, correct
 
 
-def test_loop(dataloader: DataLoader, model, loss_fn, device):
+def val_loop(dataloader: DataLoader, model, loss_fn, device):
     model.eval()
-
+    model.to(device)
     test_loss, correct = 0, 0
 
     with torch.no_grad():
         for batch, (X, y) in enumerate(dataloader):
             last_batch = batch
-            X, y = X, y.to(device)
+            X, y = X.to(device), y.to(device)
 
             pred, _ = model(X)
             test_loss += loss_fn(pred, y).item()
@@ -67,6 +65,6 @@ def test_loop(dataloader: DataLoader, model, loss_fn, device):
     last_batch += 1
     test_loss /= last_batch
     correct /= last_batch*dataloader.batch_size
-    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f}\n")
+    print(f"Valid Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f}\n")
 
     return test_loss, correct

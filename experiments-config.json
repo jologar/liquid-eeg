@@ -4,7 +4,7 @@
         {
             "name": "jandenawer01",
             "target_label": "Marker",
-            "learning_rate": 1e-5,
+            "learning_rate": 1e-3,
             "decay_rate": 0.96,
             "liquid_units": 150,
             "dropout": 0.25,
@@ -16,7 +16,7 @@
         {
             "name": "jandenawer02",
             "target_label": "Marker",
-            "learning_rate": 1e-5,
+            "learning_rate": 1e-3,
             "decay_rate": 0.96,
             "liquid_units": 250,
             "dropout": 0.25,
@@ -28,7 +28,7 @@
         {
             "name": "jandenawer03",
             "target_label": "Marker",
-            "learning_rate": 1e-5,
+            "learning_rate": 1e-3,
             "decay_rate": 0.96,
             "liquid_units": 50,
             "dropout": 0.25,
@@ -40,7 +40,7 @@
         {
             "name": "jandenawer04",
             "target_label": "Marker",
-            "learning_rate": 1e-5,
+            "learning_rate": 1e-3,
             "decay_rate": 0.96,
             "liquid_units": 80,
             "dropout": 0.25,
@@ -52,7 +52,7 @@
         {
             "name": "jandenawer05",
             "target_label": "Marker",
-            "learning_rate": 1e-5,
+            "learning_rate": 1e-3,
             "decay_rate": 0.96,
             "liquid_units": 80,
             "dropout": 0.25,
@@ -64,7 +64,7 @@
         {
             "name": "jandenawer06",
             "target_label": "Marker",
-            "learning_rate": 1e-5,
+            "learning_rate": 1e-3,
             "decay_rate": 0.96,
             "liquid_units": 120,
             "dropout": 0.25,
@@ -76,7 +76,7 @@
         {
             "name": "jandenawer07",
             "target_label": "Marker",
-            "learning_rate": 1e-5,
+            "learning_rate": 1e-3,
             "decay_rate": 0.96,
             "liquid_units": 200,
             "dropout": 0.25,
@@ -88,7 +88,7 @@
         {
             "name": "jandenawer08",
             "target_label": "Marker",
-            "learning_rate": 1e-5,
+            "learning_rate": 1e-3,
             "decay_rate": 0.96,
             "liquid_units": 500,
             "dropout": 0.25,
@@ -100,7 +100,7 @@
         {
             "name": "jandenawer09",
             "target_label": "Marker",
-            "learning_rate": 1e-5,
+            "learning_rate": 1e-3,
             "decay_rate": 0.96,
             "liquid_units": 200,
             "dropout": 0.25,

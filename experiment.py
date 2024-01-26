@@ -1,19 +1,26 @@
 import datetime
+import glob
 import json
+import os
+import random
+import time
+
+import numpy as np
+import torch
 
 from pydantic import BaseModel
 from torch.nn import CrossEntropyLoss, NLLLoss
 from torch.optim import Adam, RMSprop
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, IterableDataset
 from constants import DEVICE
 
-from dataset import TOTAL_FEATURES, EEGDataset, EEGIterableDataset
+from dataset import TOTAL_FEATURES, CsvEEGIterableDataset, KFoldSplitDataset, get_all_experiment_files
 from model import ConvLiquidEEG, count_parameters
-from training import EPOCHS, test_loop, train_loop
+from training import EPOCHS, val_loop, train_loop
 
 NUM_CLASSES = 4
-
+LOG_BASE_DIR = './log/experiments'
 
 class ExperimentConfig(BaseModel):
     name: str
@@ -45,27 +52,78 @@ class Experiment:
         self.optimizer = Adam(params=self.model.parameters(), lr=config.learning_rate)
         self.lr_scheduler = ReduceLROnPlateau(self.optimizer, mode='min', verbose=True, patience=1)
 
-    def start_training(self, num_epochs: int, train_ds: EEGIterableDataset, valid_ds: EEGDataset):
+    def train_model(self, num_epochs: int, train_ds: IterableDataset, valid_ds: IterableDataset, test_ds: IterableDataset) -> tuple:
+
+        if os.path.exists('./temp'):
+            os.removedirs('./temp')
+        os.makedirs('./temp')
+
         # Datasets
         # Dataloaders
-        train_loader = DataLoader(train_ds, batch_size=self.config.batch_size, num_workers=0, drop_last=True)
-        valid_loader = DataLoader(valid_ds, batch_size=self.config.batch_size, num_workers=0, drop_last=True)
+        train_loader = DataLoader(train_ds, batch_size=self.config.batch_size, num_workers=0, drop_last=True, shuffle=False)
+        valid_loader = DataLoader(valid_ds, batch_size=self.config.batch_size, num_workers=0, drop_last=True, shuffle=False)
 
         experiment_history = []
+        best_val_acc = 0.0
         for t in range(num_epochs):
             print(f"Epoch {t+1}\n-------------------------------")
             train_loss, train_acc = train_loop(train_loader, self.model, self.loss_fn, self.optimizer, self.device)
-            test_loss, test_acc = test_loop(valid_loader, self.model, self.loss_fn, self.device)
+            val_loss, val_acc = val_loop(valid_loader, self.model, self.loss_fn, self.device)
             self.lr_scheduler.step(train_loss)
-            epoch = {'val': {'loss': test_loss, 'acc': test_acc}, 'train': {'loss': train_loss, 'acc': train_acc}}
+            epoch = {'val': {'loss': val_loss, 'acc': val_acc}, 'train': {'loss': train_loss, 'acc': train_acc}}
             print(epoch)
             experiment_history.append(epoch)
-            train_loader.dataset.init_iterator()
-            valid_loader.dataset.init_iterator()
-        self.log_experiment(experiment_history=experiment_history)
+            # save the best model based on val_acc
+            if val_acc > best_val_acc:
+                best_val_acc = val_acc
+                torch.save(self.model.state_dict(), f'./temp/model_{self.config.name}.pt')
+
+
+        # Test run
+        test_loader = DataLoader(test_ds, batch_size=self.config.batch_size, num_workers=0, drop_last=True, shuffle=False)
+        # load the best model to test on test set
+        self.model.load_state_dict(torch.load(f'./temp/model_{self.config.name}.pt'))
+        test_loss, test_acc = val_loop(test_loader, self.model, self.loss_fn, self.device)
+
         print("Done!")
 
-    def log_experiment(self, experiment_history: list[dict]):
+        return test_loss, test_acc, experiment_history
+
+    def start_k_fold_training(self, num_epochs: int):
+        data_files = get_all_experiment_files()
+        test_file = data_files.pop(random.randint(0, len(data_files) - 1))
+
+        test_ds = CsvEEGIterableDataset(
+            csv_files=[test_file],
+            target_label=self.config.target_label,
+            sequence_length=self.config.sequence_length,
+            sequence_overlap=self.config.sequence_overlap,
+            features=self.config.features,
+        )
+        k_folding_ds = KFoldSplitDataset(
+            csv_files=data_files,
+            target_label=self.config.target_label,
+            sequence_length=self.config.sequence_length,
+            sequence_overlap=self.config.sequence_overlap,
+            features=self.config.features,
+        )
+
+        test_accs = []
+        test_losses = []
+
+        for idx, (train_ds, valid_ds) in enumerate(k_folding_ds):
+            print(f'>>> START {idx} FOLD TRAINING...\n')
+
+            test_loss, test_acc, history = self.train_model(num_epochs, train_ds, valid_ds, test_ds)
+            test_losses.append(test_loss)
+            test_accs.append(test_acc)
+
+        avg_loss = np.mean(test_losses)
+        avg_acc = np.mean(test_accs)
+        self.log_experiment(history, avg_loss, avg_acc)
+
+
+    def log_experiment(self, experiment_history: list[dict], test_loss: float, test_acc: float):
         train_log = {
             'num_params': count_parameters(self.model),
             'decay_rate': self.config.decay_rate,
@@ -78,9 +136,14 @@ class Experiment:
             'dropout': self.config.dropout,
             'features': self.config.features,
             'train_history': experiment_history,
+            'test_loss': test_loss,
+            'test_acc': test_acc,
         }
+        time_str = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+        experiment_log_path = f'{LOG_BASE_DIR}/{time_str}/{self.config.name}'
 
-        log_name = f'././log/framework/history_{self.config.name}_{datetime.datetime.timestamp(datetime.datetime.now())}.json'
+        os.makedirs(experiment_log_path, exist_ok=True)
+        log_name = f'{experiment_log_path}/history_log.json'
 
         with open(log_name, 'w', encoding='utf-8') as f:
             json.dump(train_log, f, ensure_ascii=False, indent=4)
@@ -103,28 +166,4 @@ class ExperimentFramework:
 
     def start(self):
         for experiment in self.experiments:
-            # Load data
-            print('LOADING DATA')
-            total_train = None
-            with open(TRAIN_DS) as f:
-                total_train = sum(1 for _ in f)
-
-            ds = EEGIterableDataset(
-                target_label=experiment.config.target_label,
-                ds_path=TRAIN_DS,
-                sequence_length=experiment.config.sequence_length,
-                sequence_overlap=experiment.config.sequence_overlap,
-                features=experiment.config.features,
-                total_samples=total_train
-            )
-
-            ds_valid = EEGIterableDataset(
-                target_label=experiment.config.target_label,
-                ds_path=VALID_DS,
-                sequence_length=experiment.config.sequence_length,
-                sequence_overlap=experiment.config.sequence_overlap,
-                features=experiment.config.features,
-            )
-            
-            print('DATA LOADED')
-            experiment.start_training(num_epochs=self.epochs, train_ds=ds, valid_ds=ds_valid)
+            experiment.start_k_fold_training(EPOCHS)

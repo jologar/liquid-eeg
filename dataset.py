@@ -108,20 +108,17 @@ class CsvEEGIterableDataset(IterableDataset):
         return seq_start_idx, seq_idx - 1
 
     def get_stream(self):
-        for file in self.data_iterator:
-            chunk_ds = pd.read_csv(file, chunksize=self.chunksize, usecols=self.columns)
-            for chunk in chunk_ds:
-                chunk = chunk.reset_index(drop=True)
-
-                sample_idx = 0
+        for file in self.csv_files:
+            chunk = pd.read_csv(f'{BASE_DATASETS_PATH}/{file}')
+            sample_idx = 0
+            seq_start_idx, seq_idx = self.get_sequence_indexes(sample_idx)
+            while seq_idx < len(chunk):
+                X = chunk.loc[seq_start_idx:seq_idx, chunk.columns != self.target_label].values
+                y = chunk[self.target_label][seq_idx]
+                sample_idx += 1
                 seq_start_idx, seq_idx = self.get_sequence_indexes(sample_idx)
-                while seq_idx < len(chunk):
-                    X = chunk.loc[seq_start_idx:seq_idx, chunk.columns != self.target_label].values
-                    y = chunk[self.target_label][seq_idx]
-                    sample_idx += 1
-                    seq_start_idx, seq_idx = self.get_sequence_indexes(sample_idx)
 
-                    yield X, y            
+                yield X, y            
 
     def __iter__(self):
         return self.get_stream()
@@ -213,8 +210,8 @@ class KFoldSplitDataset(Dataset):
             features: list[str] = None,
         ):
         super(KFoldSplitDataset, self).__init__()
-
-        csv_files = shuffle(csv_files) if shuffle_files else csv_files
+        if shuffle_files:
+            shuffle(csv_files)
 
         self.csv_files = csv_files
         self.target_label = target_label
@@ -227,11 +224,11 @@ class KFoldSplitDataset(Dataset):
         return self.k_folds
     
     def __getitem__(self, index) -> tuple[IterableDataset, IterableDataset]:
-        test_fold_start = index * self.test_fold_size
-        test_fold_end = test_fold_start + self.test_fold_size
+        valid_fold_start = index * self.test_fold_size
+        valid_fold_end = valid_fold_start + self.test_fold_size
 
-        test_files = self.csv_files[test_fold_start:test_fold_end]
-        train_files = [file for file, idx in enumerate(self.csv_files) if idx not in range(test_fold_start, test_fold_end)]
+        valid_files = self.csv_files[valid_fold_start:valid_fold_end]
+        train_files = [file for idx, file in enumerate(self.csv_files) if idx not in range(valid_fold_start, valid_fold_end)]
 
         train_ds = CsvEEGIterableDataset(
             csv_files=train_files,
@@ -241,19 +238,12 @@ class KFoldSplitDataset(Dataset):
             features=self.features
         )
 
-        test_ds = CsvEEGIterableDataset(
-            csv_files=test_files,
+        valid_ds = CsvEEGIterableDataset(
+            csv_files=valid_files,
             target_label=self.target_label,
             sequence_length=self.sequence_length,
             sequence_overlap=self.sequence_overlap,
             features=self.features
         )
 
-        return train_ds, test_ds
-
-    
-    
-
-
-    
-        
+        return train_ds, valid_ds

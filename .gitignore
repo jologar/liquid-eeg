@@ -2,5 +2,6 @@ log/
 datasets/**/*.*
 .venv
 .test
+temp
 
 __pycache__/
