@@ -39,7 +39,7 @@ def train_loop(dataloader: DataLoader, model, loss_fn, optimizer, device):
         
         batch_training_time = (datetime.datetime.now() - start_batch_training).total_seconds()
         start_batch_loading = datetime.datetime.now()
-        if batch % 10 == 0:
+        if batch % 100 == 0:
             loss, current = loss.item(), (batch + 1) * len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}] training time ratio: {batch_training_time / (batch_training_time + batch_loading_time)}")
     last_batch += 1
@@ -52,7 +52,7 @@ def val_loop(dataloader: DataLoader, model, loss_fn, device):
     model.eval()
     model.to(device)
     test_loss, correct = 0, 0
-
+    last_batch = 0
     with torch.no_grad():
         for batch, (X, y) in enumerate(dataloader):
             last_batch = batch

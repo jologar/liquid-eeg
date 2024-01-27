@@ -17,7 +17,7 @@ RHO_THRESHOLD = 10
 REST_STATE = 91
 EXPERIMENT_FINISH = 92
 INITAL_RELAX = 99
-INVALID_STATE = 90
+INVALID_STATES = [90, ]
 SPLIT_RATIO = 0.8
 
 
@@ -33,7 +33,7 @@ def to_dataframe(matlab_file: str) -> DataFrame:
     df['Marker'] = content['marker'][0][0]
 
     # Delete invalid marker states
-    df = df.drop(df.loc[df['Marker'] == INVALID_STATE].index)
+    df = df.drop(df.loc[df['Marker'].isin(INVALID_STATES)].index)
     df = df.reset_index(drop=True)
 
     return df
@@ -57,10 +57,12 @@ def split_experiments(df: DataFrame) -> list[DataFrame]:
         end_of_experiment_idx = df[start_idx:].loc[df['Marker'] == REST_STATE].first_valid_index()
         if end_of_experiment_idx:
             experiment = df[start_idx:end_of_experiment_idx]
+            experiment = experiment.reset_index(drop=True)
             experiments.append(experiment)
             start_idx = df[end_of_experiment_idx:].loc[df['Marker'] != REST_STATE].first_valid_index()
         else:
             experiment = df[start_idx:]
+            experiment = experiment.reset_index(drop=True)
             experiments.append(experiment)
             start_idx = None
 
@@ -122,7 +124,6 @@ def main(compile_and_split: bool = False):
                 
             for idx, experiment in enumerate(experiments):
                 experiment = balance_dataset(experiment)
-                # experiment.drop(experiment[experiment['Marker'] == 0].index, inplace=True)
                 total_experiments.append(experiment)
 
                 # Store experiment in specific file            

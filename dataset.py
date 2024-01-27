@@ -1,8 +1,8 @@
 import math
 import os
 
+import numpy as np
 import pandas as pd
-import torch
 
 from random import shuffle
 from torch.utils.data import Dataset, IterableDataset
@@ -115,6 +115,7 @@ class CsvEEGIterableDataset(IterableDataset):
             while seq_idx < len(chunk):
                 X = chunk.loc[seq_start_idx:seq_idx, chunk.columns != self.target_label].values
                 y = chunk[self.target_label][seq_idx]
+                
                 sample_idx += 1
                 seq_start_idx, seq_idx = self.get_sequence_indexes(sample_idx)
 
@@ -221,12 +222,12 @@ class KFoldSplitDataset(Dataset):
         self.test_fold_size = math.ceil(len(self.csv_files) * split)
 
     def __len__(self) -> int:
-        return self.k_folds
+        return len(self.csv_files) - 1
     
     def __getitem__(self, index) -> tuple[IterableDataset, IterableDataset]:
-        valid_fold_start = index * self.test_fold_size
+        valid_fold_start = index 
         valid_fold_end = valid_fold_start + self.test_fold_size
-
+        
         valid_files = self.csv_files[valid_fold_start:valid_fold_end]
         train_files = [file for idx, file in enumerate(self.csv_files) if idx not in range(valid_fold_start, valid_fold_end)]
 
@@ -245,5 +246,5 @@ class KFoldSplitDataset(Dataset):
             sequence_overlap=self.sequence_overlap,
             features=self.features
         )
-
+        
         return train_ds, valid_ds

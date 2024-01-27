@@ -1,4 +1,3 @@
-import datetime
 import glob
 import json
 import os
@@ -9,8 +8,8 @@ import numpy as np
 import torch
 
 from pydantic import BaseModel
-from torch.nn import CrossEntropyLoss, NLLLoss
-from torch.optim import Adam, RMSprop
+from torch.nn import CrossEntropyLoss
+from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader, IterableDataset
 from constants import DEVICE
@@ -36,31 +35,37 @@ class ExperimentConfig(BaseModel):
 
 
 class Experiment:
-    def __init__(self, config: ExperimentConfig, num_classes: int, device: str):
+    def __init__(self, config: ExperimentConfig, num_classes: int, device: str, run_id: str):
         self.config = config
         self.device = device
-        num_features = TOTAL_FEATURES if config.features is None else len(config.features)
+        self.num_features = TOTAL_FEATURES if config.features is None else len(config.features)
+        self.device = device
+        self.num_classes = num_classes
+        self.run_id = run_id
+
+    def init_model(self):
+        self.model = ConvLiquidEEG(
+            liquid_units=self.config.liquid_units,
+            seq_length=self.config.sequence_length,
+            num_classes=self.num_classes,
+            eeg_channels=self.num_features, # TODO: Parametrize
+            dropout=self.config.dropout,
+        ).to(self.device)
 
         self.loss_fn = CrossEntropyLoss()
-        self.model = ConvLiquidEEG(
-            liquid_units=config.liquid_units,
-            seq_length=config.sequence_length,
-            num_classes=num_classes,
-            eeg_channels=num_features, # TODO: Parametrize
-            dropout=config.dropout,
-        ).to(device)
-        self.optimizer = Adam(params=self.model.parameters(), lr=config.learning_rate)
+        self.optimizer = Adam(params=self.model.parameters(), lr=self.config.learning_rate)
         self.lr_scheduler = ReduceLROnPlateau(self.optimizer, mode='min', verbose=True, patience=1)
 
-    def train_model(self, num_epochs: int, train_ds: IterableDataset, valid_ds: IterableDataset, test_ds: IterableDataset) -> tuple:
+    def train_model(self, num_epochs: int, train_ds: IterableDataset, valid_ds: IterableDataset, test_ds: IterableDataset, model_id = None) -> tuple:
 
-        if os.path.exists('./temp'):
-            temp_files = glob.glob('./temp/*')
-            for temp_file in temp_files: os.remove(temp_file)
-        else:
-            os.makedirs('./temp')         
+        # if os.path.exists('./temp'):
+        #     temp_files = glob.glob('./temp/*')
+        #     for temp_file in temp_files: os.remove(temp_file)
+        # else:
+        #     os.makedirs('./temp')         
 
-        # Datasets
+        model_id = model_id if model_id else self.config.name
+
         # Dataloaders
         train_loader = DataLoader(train_ds, batch_size=self.config.batch_size, num_workers=0, drop_last=True, shuffle=False)
         valid_loader = DataLoader(valid_ds, batch_size=self.config.batch_size, num_workers=0, drop_last=True, shuffle=False)
@@ -78,13 +83,12 @@ class Experiment:
             # save the best model based on val_acc
             if val_acc > best_val_acc:
                 best_val_acc = val_acc
-                torch.save(self.model.state_dict(), f'./temp/model_{self.config.name}.pt')
-
+                torch.save(self.model.state_dict(), f'./temp/model_{model_id}.pt')
 
         # Test run
         test_loader = DataLoader(test_ds, batch_size=self.config.batch_size, num_workers=0, drop_last=True, shuffle=False)
         # load the best model to test on test set
-        self.model.load_state_dict(torch.load(f'./temp/model_{self.config.name}.pt'))
+        self.model.load_state_dict(torch.load(f'./temp/model_{model_id}.pt'))
         test_loss, test_acc = val_loop(test_loader, self.model, self.loss_fn, self.device)
 
         print("Done!")
@@ -113,10 +117,14 @@ class Experiment:
         test_accs = []
         test_losses = []
 
-        for idx, (train_ds, valid_ds) in enumerate(k_folding_ds):
-            print(f'>>> START {idx} FOLD TRAINING...\n')
+        for idx in range(len(k_folding_ds)):
+            print(f'>>> START FOLD TRAINING [{idx}/{len(k_folding_ds)}]\n')
+            train_ds, valid_ds = k_folding_ds[idx]
+            # Init model for each fold
+            self.init_model()
+            model_id = f'{self.config.name}_fold_{idx}'
+            test_loss, test_acc, history = self.train_model(num_epochs, train_ds, valid_ds, test_ds, model_id=model_id)
 
-            test_loss, test_acc, history = self.train_model(num_epochs, train_ds, valid_ds, test_ds)
             test_losses.append(test_loss)
             test_accs.append(test_acc)
 
@@ -141,8 +149,7 @@ class Experiment:
             'test_loss': test_loss,
             'test_acc': test_acc,
         }
-        time_str = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
-        experiment_log_path = f'{LOG_BASE_DIR}/{time_str}/{self.config.name}'
+        experiment_log_path = f'{LOG_BASE_DIR}/{self.run_id}/{self.config.name}'
 
         os.makedirs(experiment_log_path, exist_ok=True)
         log_name = f'{experiment_log_path}/history_log.json'
@@ -163,8 +170,8 @@ class ExperimentFramework:
             config_list = [ExperimentConfig(**data) for data in experimental_config.get('experiments', [])]
 
 
-
-        self.experiments = [Experiment(config=config, num_classes=NUM_CLASSES, device=DEVICE) for config in config_list]
+        run_id = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+        self.experiments = [Experiment(config=config, num_classes=NUM_CLASSES, device=DEVICE, run_id=run_id) for config in config_list]
 
     def start(self):
         for experiment in self.experiments:
