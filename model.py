@@ -56,21 +56,18 @@ class ConvolutionalBlock(nn.Module):
         return self.cnn(x)
     
 class ConvLiquidEEG(nn.Module):
-    # TODO: Prepare model for ablation tests
-    def __init__(self, liquid_units=20, num_classes=10, eeg_channels=5, dropout=1):
+    def __init__(self, liquid_units=20, num_classes=4, hidden_size=10, dropout=0):
         super().__init__()
         self.conv_block = ConvolutionalBlock(dropout=dropout)
         # TODO Parametrize in features
-        self.liquid_block = LiquidBlock(units=liquid_units, out_features=num_classes, in_features=11, return_sequences=False)
+        self.liquid_block = LiquidBlock(units=liquid_units, out_features=num_classes, in_features=3, return_sequences=False)
         self.softmax = nn.LogSoftmax(dim=1)
-
+    
     def forward(self, x):
-        print(f'>>>>>>> INPUT: {x.shape}')
         x = self.conv_block(x)
-        print(f'>>>>>>>>>> CONV OUTPUT SHAPE: {x.shape}')
-        liquid_out = self.liquid_block(x)
-        print(f'>>>>>>>>> LIQUID OUT: {x.shape}')
-        return self.softmax(liquid_out)
+        liquid_out = self.liquid_block(torch.squeeze(x, dim=1))
+        log_probs = self.softmax(liquid_out)
+        return log_probs
 
 
 class ConvolutionalEEG(nn.Module):
