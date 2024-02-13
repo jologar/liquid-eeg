@@ -88,20 +88,20 @@ class ConvolutionalEEG(nn.Module):
         return log_probs
 
 class ConvLSTMEEG(nn.Module):
-    def __init__(self, num_classes=10, hidden_dim=20, dropout=0, num_layers=1):
+    def __init__(self, num_classes=4, hidden_dim=20, dropout=0, num_layers=1):
         super().__init__()
         self.hidden_dim = hidden_dim
         self.conv_block = ConvolutionalBlock(dropout=dropout)
         self.lstm = nn.LSTM(3, hidden_dim, num_layers, batch_first=True)
-        self.hidden2label = nn.LazyLinear(num_classes)
+        self.linear = nn.LazyLinear(num_classes)
         self.softmax = nn.LogSoftmax(dim=1)
 
     def forward(self, x):
         x = self.conv_block(x)
-        lstm_out, _ = self.lstm(torch.squeeze(x, dim=1))
-        y = lstm_out.reshape(lstm_out.size(0), -1)
-        y = self.hidden2label(y)
-        log_probs = self.softmax(y)
+        x, _ = self.lstm(torch.squeeze(x, dim=1))
+        x = x[:, -1, :] # Extract last input for LSTM as classifier
+        x = self.linear(x)
+        log_probs = self.softmax(x)
         return log_probs
 
 
