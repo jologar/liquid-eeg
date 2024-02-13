@@ -36,15 +36,20 @@ class ConvolutionalBlock(nn.Module):
         super().__init__()
 
         self.cnn = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=32, kernel_size=2, stride=1, padding='same'),
-            nn.BatchNorm2d(32),
-            nn.ELU(),
-            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(in_channels=5, out_channels=64, kernel_size=3, stride=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
 
-            nn.Conv2d(in_channels=32, out_channels=1, kernel_size=3, stride=1, padding='same'),
-            nn.BatchNorm2d(1),
-            nn.ELU(),
+            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
             nn.Dropout2d(p=dropout),
+
+            nn.Conv2d(in_channels=64, out_channels=1, kernel_size=3, stride=1, padding='same'),
+            nn.BatchNorm2d(1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=3, stride=2)
         )
     
     def forward(self, x):
