@@ -20,14 +20,14 @@ class OnlyLiquidEEG(nn.Module):
 
 
 class LiquidBlock(nn.Module):
-    def __init__(self, units=20, out_features=10, return_sequences=True, in_features=5):
+    def __init__(self, units=20, out_features=10, in_features=5, return_sequences=False):
         super().__init__()
         wiring = AutoNCP(units, out_features)
         self.units = units
         self.liquid = CfC(in_features, wiring, return_sequences=return_sequences, batch_first=True)
 
     def forward(self, x):
-        x, _ = self.liquid(x)
+        x, _ = self.liquid(input=x)
         return x
     
 
@@ -87,28 +87,21 @@ class ConvolutionalEEG(nn.Module):
         log_probs = self.softmax(x)
         return log_probs
 
-
 class ConvLSTMEEG(nn.Module):
     def __init__(self, num_classes=10, hidden_dim=20, dropout=0, num_layers=1):
         super().__init__()
         self.hidden_dim = hidden_dim
         self.conv_block = ConvolutionalBlock(dropout=dropout)
-        self.lstm = nn.LSTM(11, hidden_dim, num_layers, batch_first=True)
-        self.hidden2label = nn.LazyLinear(out_features=10)
+        self.lstm = nn.LSTM(3, hidden_dim, num_layers, batch_first=True)
+        self.hidden2label = nn.LazyLinear(num_classes)
         self.softmax = nn.LogSoftmax(dim=1)
 
     def forward(self, x):
-        # print(f'>>>>>>>>>> INPUT SHAPE: {x.shape}')
         x = self.conv_block(x)
-        # print(f'>>>>>>>>>> CONV OUTPUT SHAPE: {x.shape}')
         lstm_out, _ = self.lstm(torch.squeeze(x, dim=1))
-        # print(f'>>>>>>>>>>>> LSTM OUT: {lstm_out.shape} {lstm_out[-1].shape}')
         y = lstm_out.reshape(lstm_out.size(0), -1)
-        # print(f'>>>>>>>>>>>> AFTER RESHAPE: {y.shape}')
         y = self.hidden2label(y)
-        # print(f'>>>>>>>>> FC OUT: {y.shape}')
         log_probs = self.softmax(y)
-        # print(f'>>>>>>>>>> LOG PROBS: {log_probs.shape}')
         return log_probs
 
 
