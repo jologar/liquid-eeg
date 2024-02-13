@@ -204,7 +204,7 @@ class KFoldSplitDataset(Dataset):
             self,
             csv_files: list[str],
             target_label: str,
-            split: float = 0.2,
+            k_folds: int = 10,
             shuffle_files: bool = True,
             sequence_length: int = 20,
             sequence_overlap: float = 0.0,
@@ -219,10 +219,12 @@ class KFoldSplitDataset(Dataset):
         self.sequence_length = sequence_length
         self.sequence_overlap = sequence_overlap
         self.features = features
-        self.test_fold_size = math.ceil(len(self.csv_files) * split)
+        self.test_fold_size = math.ceil(len(self.csv_files) // k_folds)
+        self.k_folds = k_folds
+        print(f'>>>>>>>>>>>> CSV FILES: {len(self.csv_files)} test fold: {self.test_fold_size}')
 
     def __len__(self) -> int:
-        return len(self.csv_files) - 1
+        return self.k_folds
     
     def __getitem__(self, index) -> tuple[IterableDataset, IterableDataset]:
         valid_fold_start = index 

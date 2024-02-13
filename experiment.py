@@ -5,6 +5,7 @@ import random
 import time
 
 import numpy as np
+import pandas as pd
 import torch
 
 from pydantic import BaseModel
@@ -15,10 +16,9 @@ from torch.utils.data import DataLoader, IterableDataset
 from constants import DEVICE
 
 from dataset import TOTAL_FEATURES, CsvEEGIterableDataset, KFoldSplitDataset, get_all_experiment_files
-from model import ConvLiquidEEG, count_parameters
+from model import ConvLSTMEEG, ConvLiquidEEG, ConvolutionalEEG, count_parameters
 from training import EPOCHS, val_loop, train_loop
 
-NUM_CLASSES = 4
 LOG_BASE_DIR = './log/experiments'
 
 class ExperimentConfig(BaseModel):
@@ -44,25 +44,25 @@ class Experiment:
         self.run_id = run_id
 
     def init_model(self):
+        # self.model = ConvLSTMEEG(num_classes=self.num_classes, dropout=0.25, hidden_dim=10).to(self.device)
         self.model = ConvLiquidEEG(
             liquid_units=self.config.liquid_units,
-            seq_length=self.config.sequence_length,
-            num_classes=self.num_classes,
-            eeg_channels=self.num_features, # TODO: Parametrize
-            dropout=self.config.dropout,
-        ).to(self.device)
+            num_classes=self.num_classes, 
+            eeg_channels=self.num_features,
+            dropout=0.25,
+        )
 
         self.loss_fn = CrossEntropyLoss()
-        self.optimizer = Adam(params=self.model.parameters(), lr=self.config.learning_rate)
+        self.optimizer = Adam(params=self.model.parameters(), lr=self.config.learning_rate, weight_decay=1e-5)
         self.lr_scheduler = ReduceLROnPlateau(self.optimizer, mode='min', verbose=True, patience=1)
 
     def train_model(self, num_epochs: int, train_ds: IterableDataset, valid_ds: IterableDataset, test_ds: IterableDataset, model_id = None) -> tuple:
 
-        # if os.path.exists('./temp'):
-        #     temp_files = glob.glob('./temp/*')
-        #     for temp_file in temp_files: os.remove(temp_file)
-        # else:
-        #     os.makedirs('./temp')         
+        if os.path.exists('./temp'):
+            temp_files = glob.glob('./temp/*')
+            for temp_file in temp_files: os.remove(temp_file)
+        else:
+            os.makedirs('./temp', exist_ok=True)         
 
         model_id = model_id if model_id else self.config.name
 
@@ -163,6 +163,9 @@ class ExperimentFramework:
 
     def __init__(self):
         config_list: list[ExperimentConfig] = []
+        # TODO: less hacky way to get num classes
+        df: pd.DataFrame = pd.read_csv('./datasets/csv/HaLT-SubjectI-160628-6St-LRHandLegTongue_experiment_2.csv')
+        num_classes = len(np.unique(df['Marker']))
 
         with open('./experiments-config.json') as f:
             experimental_config = json.load(f)
@@ -171,7 +174,7 @@ class ExperimentFramework:
 
 
         run_id = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
-        self.experiments = [Experiment(config=config, num_classes=NUM_CLASSES, device=DEVICE, run_id=run_id) for config in config_list]
+        self.experiments = [Experiment(config=config, num_classes=num_classes, device=DEVICE, run_id=run_id) for config in config_list]
 
     def start(self):
         for experiment in self.experiments:

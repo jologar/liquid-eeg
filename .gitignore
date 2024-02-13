@@ -5,3 +5,5 @@ datasets/**/*.*
 temp
 
 __pycache__/
+
+.torcheeg

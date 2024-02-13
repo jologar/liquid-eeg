@@ -1,7 +1,6 @@
 import numpy as np
 import os
-import glob
-import pandas as pd
+import re
 import scipy
 
 from random import shuffle
@@ -17,7 +16,7 @@ RHO_THRESHOLD = 10
 REST_STATE = 91
 EXPERIMENT_FINISH = 92
 INITAL_RELAX = 99
-INVALID_STATES = [90, ]
+INVALID_STATES = [90, 0]
 SPLIT_RATIO = 0.8
 
 
@@ -68,6 +67,10 @@ def split_experiments(df: DataFrame) -> list[DataFrame]:
 
     return experiments
 
+def format_classes(df: DataFrame) -> DataFrame:
+    df['Marker'] = df['Marker'] - 1
+    return df
+
 
 def calculate_rho(df: DataFrame) -> float:
     class_counts = df['Marker'].value_counts().sort_index()
@@ -116,14 +119,17 @@ def store_in_big_file(big_file_path: str, experiment: DataFrame):
 def main(compile_and_split: bool = False):
     total_experiments: list[DataFrame] = []
     for file in os.listdir(DATASETS_PATH):
-        print(file)
         if file.endswith('.mat'):
+            print(f'Processing: {file}')
+            subject = re.search("-Subject(\w){1}-", file).group(1)
+            print(f'>>>>>>>>>> SUBJECT: {subject}')
             dataset_path: str = os.path.join(DATASETS_PATH, file)
             df: DataFrame = to_dataframe(dataset_path)
             experiments: list[DataFrame] = split_experiments(df)
                 
             for idx, experiment in enumerate(experiments):
-                experiment = balance_dataset(experiment)
+                # experiment = balance_dataset(experiment)
+                experiment = format_classes(experiment)
                 total_experiments.append(experiment)
 
                 # Store experiment in specific file            

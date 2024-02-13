@@ -24,9 +24,8 @@ def train_loop(dataloader: DataLoader, model, loss_fn, optimizer, device):
         last_batch = batch
         X, y = X.to(device), y.to(device)
 
-
         # Compute prediction and loss
-        pred, _ = model(X)
+        pred = model(X)
         loss = loss_fn(pred, y)
 
         # Backpropagation
@@ -58,7 +57,7 @@ def val_loop(dataloader: DataLoader, model, loss_fn, device):
             last_batch = batch
             X, y = X.to(device), y.to(device)
 
-            pred, _ = model(X)
+            pred = model(X)
             test_loss += loss_fn(pred, y).item()
             correct += torch.eq(torch.argmax(pred, dim=1), y).type(torch.float).sum().item()
 
