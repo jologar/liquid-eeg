@@ -4,6 +4,7 @@
         {
             "name": "250seq_200lu_22ch",
             "target_label": "Marker",
+            "learning_rate": 1e-3,
             "liquid_units": 200,
             "dropout": 0.25,
             "batch_size": 64,
@@ -15,6 +16,7 @@
         {
             "name": "250seq_100lu_22ch",
             "target_label": "Marker",
+            "learning_rate": 1e-3,
             "liquid_units": 100,
             "dropout": 0.25,
             "batch_size": 64,
@@ -26,6 +28,7 @@
         {
             "name": "500seq_200lu_22ch",
             "target_label": "Marker",
+            "learning_rate": 1e-3,
             "liquid_units": 200,
             "dropout": 0.25,
             "batch_size": 64,
@@ -37,6 +40,7 @@
         {
             "name": "500seq_100lu_22ch",
             "target_label": "Marker",
+            "learning_rate": 1e-3,
             "liquid_units": 100,
             "dropout": 0.25,
             "batch_size": 64,

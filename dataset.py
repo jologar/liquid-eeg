@@ -48,11 +48,7 @@ class TrasposeEEG(transforms.EEGTransform):
         return np.moveaxis(eeg, -1, -2)
 
 
-def get_bci_competition_dataset(config: dict[str, Any]) -> BCICIV2aDataset:
-    seq_length = config.get('seq_length')
-    dt = config.get('dt', 25)
-    eeg_bands: dict[str, Any] = config.get('eeg_bands', DEFAULT_BANDS)
-
+def get_bci_competition_dataset(seq_length: int, dt: int = 25, eeg_bands: dict[str, Any] = DEFAULT_BANDS) -> BCICIV2aDataset:
     bands_name = [f'{band}_{str.join(freq_range, '-')}' for band, freq_range in eeg_bands.items()]
 
     return BCICIV2aDataset(
