@@ -1,3 +1,5 @@
+from enum import Enum
+from typing import Any
 import torch
 import torch.nn as nn
 from ncps.wirings import AutoNCP
@@ -6,6 +8,12 @@ from constants import DEVICE
 
 from preprocessing import EEGBandsPreprocessing, EEG_BANDS
 
+
+class ModelType(Enum):
+    ONLY_LIQUID = 1
+    ONLY_CONV = 2
+    CONV_LIQUID = 3
+    CONV_LSTM = 4
 
 class OnlyLiquidEEG(nn.Module):
     def __init__(self, liquid_units=50, num_classes=2, channels=4):
@@ -56,7 +64,7 @@ class ConvolutionalBlock(nn.Module):
         return self.cnn(x)
     
 class ConvLiquidEEG(nn.Module):
-    def __init__(self, liquid_units=20, num_classes=4, hidden_size=10, dropout=0):
+    def __init__(self, liquid_units=20, num_classes=4, dropout=0):
         super().__init__()
         self.conv_block = ConvolutionalBlock(dropout=dropout)
         # TODO Parametrize in features
@@ -139,6 +147,28 @@ class ParallelConvLiquidEEG(nn.Module):
         concat = torch.cat((s_flat, t), dim=1)
         self.last_logits = self.linear(concat)
         return self.softmax(self.last_logits), hx
+
+
+def get_model_instance(model_type: int, config: dict[str, Any]) -> nn.Module:
+    num_classes = config.get('num_classes')
+    liquid_units = config.get('liquid_units')
+    dropout = config.get('dropout', 0)
+
+    if num_classes is None:
+        raise ValueError('num_classes in config must be passed.')
+
+    match model_type:
+        case ModelType.ONLY_CONV:
+            num_classes = config.get('num_classes')
+            return ConvolutionalEEG(num_classes, dropout)
+        case ModelType.ONLY_LIQUID:
+            channels = config.get('channels')
+            num_channels = len(channels) if channels else 22
+            return OnlyLiquidEEG(liquid_units, num_classes, num_channels)
+        case ModelType.CONV_LIQUID:
+            return ConvLiquidEEG(liquid_units, num_classes, dropout)
+        case ModelType.CONV_LSTM:
+            return ConvLSTMEEG(num_classes, dropout)
 
 
 def count_parameters(model: ConvLiquidEEG):
