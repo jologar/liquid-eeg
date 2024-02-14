@@ -16,7 +16,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader, IterableDataset
 from constants import DEVICE
 
-from dataset import TOTAL_FEATURES, CsvEEGIterableDataset, KFoldSplitDataset, get_all_experiment_files, get_bci_competition_dataset
+from dataset import BCI_C_IV_2A_NUM_CLASSES, TOTAL_FEATURES, CsvEEGIterableDataset, KFoldSplitDataset, get_all_experiment_files, get_bci_competition_dataset
 from model import ConvLSTMEEG, ConvLiquidEEG, ConvolutionalEEG, ModelType, count_parameters, get_model_instance
 from training import EPOCHS, val_loop, train_loop
 
@@ -183,10 +183,9 @@ class ExperimentFramework:
 
     def __init__(self):
         config_list: list[ExperimentConfig] = []
-        # TODO: less hacky way to get num classes
-        df: pd.DataFrame = pd.read_csv('./datasets/csv/HaLT-SubjectI-160628-6St-LRHandLegTongue_experiment_2.csv')
-        num_classes = len(np.unique(df['Marker']))
-
+        # # TODO: less hacky way to get num classes
+        # df: pd.DataFrame = pd.read_csv('./datasets/csv/HaLT-SubjectI-160628-6St-LRHandLegTongue_experiment_2.csv')
+        # num_classes = len(np.unique(df['Marker']))
         with open('./experiments-config.json') as f:
             experimental_config = json.load(f)
             self.epochs = experimental_config.get('train_epochs', EPOCHS)
@@ -194,7 +193,7 @@ class ExperimentFramework:
 
 
         run_id = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
-        self.experiments = [Experiment(config=config, num_classes=num_classes, device=DEVICE, run_id=run_id) for config in config_list]
+        self.experiments = [Experiment(config=config, num_classes=BCI_C_IV_2A_NUM_CLASSES, device=DEVICE, run_id=run_id) for config in config_list]
 
     def start(self):
         for experiment in self.experiments:
