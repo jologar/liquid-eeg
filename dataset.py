@@ -53,9 +53,11 @@ def get_bci_competition_dataset(config: dict[str, Any]) -> BCICIV2aDataset:
     dt = config.get('dt', 25)
     eeg_bands: dict[str, Any] = config.get('eeg_bands', DEFAULT_BANDS)
 
+    bands_name = [f'{band}_{str.join(freq_range, '-')}' for band, freq_range in eeg_bands.items()]
+
     return BCICIV2aDataset(
         root_path='./datasets/bci_c',
-        io_path=f'./datasets/bci_c/processed/biciv_2a_{seq_length}',
+        io_path=f'./datasets/bci_c/processed/biciv_2a_{seq_length}_{bands_name}',
         chunk_size=seq_length,
         overlap=seq_length - dt,
         offline_transform=transforms.BandSignal(
