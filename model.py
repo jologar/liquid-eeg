@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import IntEnum
 from typing import Any
 import torch
 import torch.nn as nn
@@ -9,7 +9,7 @@ from constants import DEVICE
 from preprocessing import EEGBandsPreprocessing, EEG_BANDS
 
 
-class ModelType(Enum):
+class ModelType(IntEnum):
     ONLY_LIQUID = 1
     ONLY_CONV = 2
     CONV_LIQUID = 3

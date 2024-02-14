@@ -1,12 +1,18 @@
 import math
 import os
+from typing import Any, Dict, Union
+from moabb import paradigms
+
 
 import numpy as np
 import pandas as pd
 
 from random import shuffle
+from torcheeg import transforms
+from torcheeg.datasets import BCICIV2aDataset
 from torch.utils.data import Dataset, IterableDataset
 
+BASE_BCI_C_DATASET_PATH = './datasets/bci_c'
 BASE_DATASETS_PATH = './datasets/csv'
 TRAIN_DS = f'{BASE_DATASETS_PATH}/train-eeg-data.csv'
 VALID_DS = f'{BASE_DATASETS_PATH}/validation-eeg-data.csv'
@@ -15,6 +21,57 @@ TOTAL_FEATURES = 22
 DEFAULT_FEATURES = ['Fp1','Fp2','F3','F4','C3','C4','P3','P4','O1','O2','A1','A2','F7','F8','T3','T4','T5','T6','Fz','Cz','Pz','X5']
 SAMPLE_FREQ = 200   # 200Hz
 CHUNK_MULTIPLICATOR = 50
+
+BCI_C_IV_2A_SAMPLE_RATE = 250
+DEFAULT_BANDS = {
+    'delta': [1, 4],
+    'theta': [4, 8],
+    'alpha': [8, 12],
+    'beta': [13, 30],
+    'low_gamma': [30, 40], 
+}
+
+
+# Custom transform to traspose matrix
+class TrasposeEEG(transforms.EEGTransform):
+    def __init__(self, apply_to_baseline: bool = False):
+        super(TrasposeEEG, self).__init__(apply_to_baseline=apply_to_baseline)
+
+    def __call__(self,
+                 *args,
+                 eeg: np.ndarray,
+                 baseline: Union[np.ndarray, None] = None,
+                 **kwargs) -> Dict[str, np.ndarray]:
+        return super().__call__(*args, eeg=eeg, baseline=baseline, **kwargs)
+    
+    def apply(self, eeg: np.ndarray, **kwargs) -> np.ndarray:
+        return np.moveaxis(eeg, -1, -2)
+
+
+def get_bci_competition_dataset(config: dict[str, Any]) -> BCICIV2aDataset:
+    seq_length = config.get('seq_length')
+    dt = config.get('dt', 25)
+    eeg_bands: dict[str, Any] = config.get('eeg_bands', DEFAULT_BANDS)
+
+    return BCICIV2aDataset(
+        root_path='./datasets/bci_c',
+        io_path=f'./datasets/bci_c/processed/biciv_2a_{seq_length}',
+        chunk_size=seq_length,
+        overlap=seq_length - dt,
+        offline_transform=transforms.BandSignal(
+            sampling_rate=BCI_C_IV_2A_SAMPLE_RATE,
+            band_dict=eeg_bands,
+        ),
+        online_transform=transforms.Compose([
+            TrasposeEEG(),
+            transforms.ToTensor()
+        ]),
+        label_transform=transforms.Compose([
+                transforms.Select('label'),
+                transforms.Lambda(lambda x: x - 1)
+        ]),
+        num_worker=6,
+    )
 
 
 def get_all_experiment_files() -> list[str]:
