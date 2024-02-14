@@ -145,6 +145,8 @@ class Experiment:
 
     def log_experiment(self, experiment_history: list[dict], test_loss: float, test_acc: float, best_epoch: int):
         train_log = {
+            'config_name': self.config.name,
+            'model_type': self.model_type,
             'num_params': count_parameters(self.model),
             'batch_size': self.config.batch_size,
             'learning_rate': self.config.learning_rate,
@@ -160,7 +162,7 @@ class Experiment:
             'test_loss': test_loss,
             'test_acc': test_acc,
         }
-        experiment_log_path = f'{LOG_BASE_DIR}/{self.run_id}/{self.config.name}'
+        experiment_log_path = f'{LOG_BASE_DIR}/{self.run_id}/{self.model_type}'
 
         os.makedirs(experiment_log_path, exist_ok=True)
         log_name = f'{experiment_log_path}/history_log.json'
@@ -181,7 +183,7 @@ class ExperimentFramework:
     experiments: list[Experiment]
     epochs: int = EPOCHS
 
-    def __init__(self):
+    def __init__(self, model_type: ModelType | None = None):
         config_list: list[ExperimentConfig] = []
         # # TODO: less hacky way to get num classes
         # df: pd.DataFrame = pd.read_csv('./datasets/csv/HaLT-SubjectI-160628-6St-LRHandLegTongue_experiment_2.csv')
@@ -193,7 +195,13 @@ class ExperimentFramework:
 
 
         run_id = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
-        self.experiments = [Experiment(config=config, num_classes=BCI_C_IV_2A_NUM_CLASSES, device=DEVICE, run_id=run_id) for config in config_list]
+        models = list(ModelType) if model_type is None else [model_type]
+
+        self.experiments = []
+        for model in models:
+            self.experiments += [Experiment(model, config=config, num_classes=BCI_C_IV_2A_NUM_CLASSES, device=DEVICE, run_id=run_id) for config in config_list]
+
+        # self.experiments = [Experiment(config=config, num_classes=BCI_C_IV_2A_NUM_CLASSES, device=DEVICE, run_id=run_id) for config in config_list]
 
     def start(self):
         for experiment in self.experiments:
