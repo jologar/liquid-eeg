@@ -149,26 +149,29 @@ class ParallelConvLiquidEEG(nn.Module):
         return self.softmax(self.last_logits), hx
 
 
-def get_model_instance(model_type: int, config: dict[str, Any]) -> nn.Module:
-    num_classes = config.get('num_classes')
-    liquid_units = config.get('liquid_units')
-    dropout = config.get('dropout', 0)
-
-    if num_classes is None:
-        raise ValueError('num_classes in config must be passed.')
+def get_model_instance(model_type: int, num_classes: int, **kwargs) -> nn.Module:
+    liquid_units = kwargs.get('liquid_units')
+    dropout = kwargs.get('dropout', 0)
+    if liquid_units is None:
+        raise ValueError('liquid_units must be passed.')
 
     match model_type:
         case ModelType.ONLY_CONV:
-            num_classes = config.get('num_classes')
+            print(f'>>>>>>>>>>> EXPERIMENT WITH ConvEEG')
             return ConvolutionalEEG(num_classes, dropout)
         case ModelType.ONLY_LIQUID:
-            channels = config.get('channels')
+            print(f'>>>>>>>>>>> EXPERIMENT WITH LiquidEEG')
+            channels = kwargs.get('features')
             num_channels = len(channels) if channels else 22
             return OnlyLiquidEEG(liquid_units, num_classes, num_channels)
         case ModelType.CONV_LIQUID:
+            print(f'>>>>>>>>>>> EXPERIMENT WITH ConvLiquidEEG')
             return ConvLiquidEEG(liquid_units, num_classes, dropout)
         case ModelType.CONV_LSTM:
+            print(f'>>>>>>>>>>> EXPERIMENT WITH ConvLSTMEEG')
             return ConvLSTMEEG(num_classes, dropout)
+        
+    raise ValueError(f'{model_type} is not a valid model type.')
 
 
 def count_parameters(model: ConvLiquidEEG):

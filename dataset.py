@@ -1,8 +1,6 @@
 import math
 import os
 from typing import Any, Dict, Union
-from moabb import paradigms
-
 
 import numpy as np
 import pandas as pd
@@ -50,11 +48,11 @@ class TrasposeEEG(transforms.EEGTransform):
 
 
 def get_bci_competition_dataset(seq_length: int, dt: int = 25, eeg_bands: dict[str, Any] = DEFAULT_BANDS) -> BCICIV2aDataset:
-    bands_name = [f'{band}_{'-'.join(freq_range)}' for band, freq_range in eeg_bands.items()]
-
+    bands_name = '_'.join([f'{band}_{"-".join(map(str, freq_range))}' for band, freq_range in eeg_bands.items()])
+    os.makedirs('./datasets/processed', exist_ok=True)    
     return BCICIV2aDataset(
         root_path='./datasets/bci_c',
-        io_path=f'./datasets/bci_c/processed/biciv_2a_{seq_length}_{bands_name}',
+        io_path=f'./datasets/processed/biciv_2a_{seq_length}_{bands_name}',
         chunk_size=seq_length,
         overlap=seq_length - dt,
         offline_transform=transforms.BandSignal(
@@ -69,7 +67,6 @@ def get_bci_competition_dataset(seq_length: int, dt: int = 25, eeg_bands: dict[s
                 transforms.Select('label'),
                 transforms.Lambda(lambda x: x - 1)
         ]),
-        num_worker=6,
     )
 
 

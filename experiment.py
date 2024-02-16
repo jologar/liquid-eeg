@@ -16,7 +16,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader, IterableDataset
 from constants import DEVICE
 
-from dataset import BCI_C_IV_2A_NUM_CLASSES, TOTAL_FEATURES, CsvEEGIterableDataset, KFoldSplitDataset, get_all_experiment_files, get_bci_competition_dataset
+from dataset import BCI_C_IV_2A_NUM_CLASSES, DEFAULT_BANDS, TOTAL_FEATURES, CsvEEGIterableDataset, KFoldSplitDataset, get_all_experiment_files, get_bci_competition_dataset
 from model import ConvLSTMEEG, ConvLiquidEEG, ConvolutionalEEG, ModelType, count_parameters, get_model_instance
 from training import EPOCHS, val_loop, train_loop
 
@@ -46,14 +46,14 @@ class Experiment:
         self.run_id = run_id
 
     def init_model(self):
-        self.model = get_model_instance(self.model_type, self.config)
+        self.model = get_model_instance(self.model_type, BCI_C_IV_2A_NUM_CLASSES, **dict(self.config))
 
         self.loss_fn = CrossEntropyLoss()
         self.optimizer = Adam(params=self.model.parameters(), lr=self.config.learning_rate, weight_decay=1e-5)
         self.lr_scheduler = ReduceLROnPlateau(self.optimizer, mode='min', verbose=True, patience=1)
 
     def train_model(self, num_epochs: int, train_ds, valid_ds, test_ds = None, model_id = None) -> tuple:
-
+        self.num_epochs = num_epochs
         if os.path.exists('./temp'):
             temp_files = glob.glob('./temp/*')
             for temp_file in temp_files: os.remove(temp_file)
@@ -63,8 +63,8 @@ class Experiment:
         model_id = model_id if model_id else self.config.name
 
         # Dataloaders
-        train_loader = DataLoader(train_ds, batch_size=self.config.batch_size, num_workers=0, drop_last=True, shuffle=True)
-        valid_loader = DataLoader(valid_ds, batch_size=self.config.batch_size, num_workers=0, drop_last=True, shuffle=False)
+        train_loader = DataLoader(train_ds, batch_size=self.config.batch_size, num_workers=4, drop_last=True, shuffle=True)
+        valid_loader = DataLoader(valid_ds, batch_size=self.config.batch_size, num_workers=4, drop_last=True, shuffle=False)
 
         experiment_history = []
         best_val_acc = 0.0
@@ -72,10 +72,12 @@ class Experiment:
         best_epoch = None
         for t in range(num_epochs):
             print(f"Epoch {t+1}\n-------------------------------")
+            epoch_time_start = time.time()
             train_loss, train_acc = train_loop(train_loader, self.model, self.loss_fn, self.optimizer, self.device)
             val_loss, val_acc = val_loop(valid_loader, self.model, self.loss_fn, self.device)
+            epoch_time = time.time() - epoch_time_start
             self.lr_scheduler.step(train_loss)
-            epoch = {'val': {'loss': val_loss, 'acc': val_acc}, 'train': {'loss': train_loss, 'acc': train_acc}}
+            epoch = {'time': epoch_time, 'val': {'loss': val_loss, 'acc': val_acc}, 'train': {'loss': train_loss, 'acc': train_acc}}
             print(epoch)
             experiment_history.append(epoch)
             # save the best model based on val_acc
@@ -85,7 +87,7 @@ class Experiment:
                 best_epoch = t
                 torch.save(self.model.state_dict(), f'./temp/model_{model_id}.pt')
 
-        if test_loader is None:
+        if test_ds is None:
             model_loss = best_val_loss
             model_acc = best_val_acc
         else:
@@ -137,8 +139,10 @@ class Experiment:
         self.log_experiment(history, avg_loss, avg_acc)
 
     def train_intrasubject_bci_model(self, num_epochs: int, subject='A01'):
-        dataset = get_bci_competition_dataset(self.config.sequence_length, self.config.dt)
+        eeg_bands = {'delta_gamma': [1, 40]} if self.model_type == ModelType.ONLY_LIQUID else DEFAULT_BANDS
+        dataset = get_bci_competition_dataset(self.config.sequence_length, self.config.dt, eeg_bands)
         train_ds, val_ds = train_test_split_per_subject_cross_trial(dataset, test_size=0.2, subject=subject)
+        self.init_model()
 
         best_epoch, model_loss, model_acc, history = self.train_model(num_epochs, train_ds, val_ds)
         self.log_experiment(history, model_loss, model_acc, best_epoch)
@@ -151,7 +155,7 @@ class Experiment:
             'batch_size': self.config.batch_size,
             'learning_rate': self.config.learning_rate,
             'units': self.config.liquid_units,
-            'num_epochs': EPOCHS,
+            'num_epochs': self.num_epochs,
             'sequence_length': self.config.sequence_length,
             'sequence_overlap': self.config.sequence_overlap,
             'dt': self.config.dt,
@@ -196,7 +200,6 @@ class ExperimentFramework:
 
         run_id = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
         models = list(ModelType) if model_type is None else [model_type]
-
         self.experiments = []
         for model in models:
             self.experiments += [Experiment(model, config=config, num_classes=BCI_C_IV_2A_NUM_CLASSES, device=DEVICE, run_id=run_id) for config in config_list]
@@ -205,6 +208,6 @@ class ExperimentFramework:
 
     def start(self):
         for experiment in self.experiments:
-            seed_everything()
+            seed_everything(42)
             # experiment.start_k_fold_training(EPOCHS)
             experiment.train_intrasubject_bci_model(self.epochs)
