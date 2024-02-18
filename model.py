@@ -8,7 +8,9 @@ from constants import DEVICE
 
 from preprocessing import EEGBandsPreprocessing, EEG_BANDS
 
-CONV_OUTPUT_SIZE = 1
+def get_conv_out_dim_for(channels: int) -> int:
+    # TODO: Hacky way. Calculate the out dim with the correct formulae.
+    return 1 if channels == 11 else 4
 
 class ModelType(IntEnum):
     ONLY_LIQUID = 1
@@ -80,11 +82,12 @@ class ConvolutionalBlock(nn.Module):
         return self.cnn(x)
 
 class ConvLiquidEEG(nn.Module):
-    def __init__(self, liquid_units=20, num_classes=4, dropout=0):
+    def __init__(self, liquid_units=20, num_classes=4, dropout=0, channels=22):
         super().__init__()
         self.conv_block = ConvolutionalBlock(dropout=dropout)
         # TODO Parametrize in features
-        self.liquid_block = LiquidBlock(units=liquid_units, out_features=num_classes, in_features=CONV_OUTPUT_SIZE, return_sequences=False)
+        in_features = get_conv_out_dim_for(channels)
+        self.liquid_block = LiquidBlock(units=liquid_units, out_features=num_classes, in_features=in_features, return_sequences=False)
         self.softmax = nn.LogSoftmax(dim=1)
     
     def forward(self, x):
@@ -112,10 +115,11 @@ class ConvolutionalEEG(nn.Module):
         return log_probs
 
 class ConvLSTMEEG(nn.Module):
-    def __init__(self, num_classes=4, hidden_dim=20, dropout=0, num_layers=1):
+    def __init__(self, num_classes=4, hidden_dim=20, dropout=0, num_layers=1, channels=22):
         super().__init__()
         self.conv_block = ConvolutionalBlock(dropout=dropout)
-        self.lstm = nn.LSTM(CONV_OUTPUT_SIZE, hidden_dim, num_layers, batch_first=True)
+        input_dim = get_conv_out_dim_for(channels)
+        self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
         self.linear = nn.LazyLinear(num_classes)
         self.softmax = nn.LogSoftmax(dim=1)
 
@@ -167,6 +171,9 @@ class ParallelConvLiquidEEG(nn.Module):
 def get_model_instance(model_type: int, num_classes: int, **kwargs) -> nn.Module:
     liquid_units = kwargs.get('liquid_units')
     dropout = kwargs.get('dropout', 0)
+    channels = kwargs.get('features')
+    num_channels = len(channels) if channels else 22
+
     if liquid_units is None:
         raise ValueError('liquid_units must be passed.')
 
@@ -176,15 +183,13 @@ def get_model_instance(model_type: int, num_classes: int, **kwargs) -> nn.Module
             return ConvolutionalEEG(num_classes, dropout)
         case ModelType.ONLY_LIQUID:
             print(f'>>>>>>>>>>> EXPERIMENT WITH LiquidEEG')
-            channels = kwargs.get('features')
-            num_channels = len(channels) if channels else 22
             return OnlyLiquidEEG(liquid_units, num_classes, num_channels)
         case ModelType.CONV_LIQUID:
             print(f'>>>>>>>>>>> EXPERIMENT WITH ConvLiquidEEG')
-            return ConvLiquidEEG(liquid_units, num_classes, dropout)
+            return ConvLiquidEEG(liquid_units, num_classes, dropout, num_channels)
         case ModelType.CONV_LSTM:
             print(f'>>>>>>>>>>> EXPERIMENT WITH ConvLSTMEEG')
-            return ConvLSTMEEG(num_classes, dropout=dropout, hidden_dim=200)
+            return ConvLSTMEEG(num_classes, dropout=dropout, hidden_dim=200, channels=num_channels)
         
     raise ValueError(f'{model_type} is not a valid model type.')
 

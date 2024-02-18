@@ -20,7 +20,7 @@ from dataset import BCI_C_IV_2A_NUM_CLASSES, DEFAULT_BANDS, TOTAL_FEATURES, CsvE
 from model import ModelType, count_parameters, get_model_instance
 from training import EPOCHS, val_loop, train_loop
 
-DEFAULT_EXPERIMENTS = './experiments-config.json'
+DEFAULT_EXPERIMENTS = './experiments-config-all.json'
 LOG_BASE_DIR = './log/experiments'
 
 class ExperimentConfig(BaseModel):
@@ -51,7 +51,7 @@ class Experiment:
 
         self.loss_fn = CrossEntropyLoss()
         self.optimizer = Adam(params=self.model.parameters(), lr=self.config.learning_rate, weight_decay=1e-5)
-        self.lr_scheduler = ReduceLROnPlateau(self.optimizer, mode='min', patience=4, min_lr=1e-5, threshold=1e-3)
+        self.lr_scheduler = ReduceLROnPlateau(self.optimizer, mode='min', patience=2, min_lr=1e-5, threshold=1e-4)
 
     def train_model(self, num_epochs: int, train_ds, valid_ds, test_ds = None, model_id = None) -> tuple:
         self.num_epochs = num_epochs
