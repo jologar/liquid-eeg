@@ -1,6 +1,6 @@
 import math
 import os
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Union
 
 import numpy as np
 import pandas as pd
@@ -45,21 +45,44 @@ class TrasposeEEG(transforms.EEGTransform):
     
     def apply(self, eeg: np.ndarray, **kwargs) -> np.ndarray:
         return np.moveaxis(eeg, -1, -2)
+    
+class PickChannelFromBand(transforms.EEGTransform):
+    def __init__(self, pick_list: List[int], apply_to_baseline: bool = False):
+        super(PickChannelFromBand, self).__init__(apply_to_baseline=apply_to_baseline)
+        self.pick_list = pick_list
+
+    def __call__(self,
+                 *args,
+                 eeg: np.ndarray,
+                 baseline: Union[np.ndarray, None] = None,
+                 **kwargs) -> Dict[str, np.ndarray]:
+        return super().__call__(*args, eeg=eeg, baseline=baseline, **kwargs)
+    
+    def apply(self, eeg: np.ndarray, **kwargs) -> np.ndarray:
+        return eeg[:, self.pick_list]
 
 
-def get_bci_competition_dataset(seq_length: int, dt: int = 25, eeg_bands: dict[str, Any] = DEFAULT_BANDS) -> BCICIV2aDataset:
+def get_bci_competition_dataset(
+    seq_length: int, dt: int = 25, eeg_bands: dict[str, Any] = DEFAULT_BANDS, channels: list[int] | None = None
+) -> BCICIV2aDataset:
+    channels = channels if channels is not None else [*range(0,22,1)]
     bands_name = '_'.join([f'{band}_{"-".join(map(str, freq_range))}' for band, freq_range in eeg_bands.items()])
-    os.makedirs('./datasets/processed', exist_ok=True)    
+    os.makedirs('./datasets/processed', exist_ok=True)
+    has_overlap = dt > 0
+    io_path = f'./datasets/processed/biciv_2a_{seq_length}_{bands_name}'
+    if not has_overlap:
+        io_path = f'{io_path}_no_overlap'
     return BCICIV2aDataset(
         root_path='./datasets/bci_c',
-        io_path=f'./datasets/processed/biciv_2a_{seq_length}_{bands_name}',
+        io_path=io_path,
         chunk_size=seq_length,
-        overlap=seq_length - dt,
+        overlap=seq_length - dt if has_overlap else 0,
         offline_transform=transforms.BandSignal(
             sampling_rate=BCI_C_IV_2A_SAMPLE_RATE,
             band_dict=eeg_bands,
         ),
         online_transform=transforms.Compose([
+            PickChannelFromBand(pick_list=channels),
             TrasposeEEG(),
             transforms.ToTensor()
         ]),

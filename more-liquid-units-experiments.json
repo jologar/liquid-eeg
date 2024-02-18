@@ -1,0 +1,27 @@
+{
+    "train_epochs": 50,
+    "experiments": [
+        {
+            "name": "500seq_400lu_22ch",
+            "target_label": "Marker",
+            "learning_rate": 1e-3,
+            "liquid_units": 400,
+            "dropout": 0.25,
+            "batch_size": 128,
+            "sequence_length": 500,
+            "dt": 125,
+            "sequence_overlap": 0.5
+        },
+        {
+            "name": "250seq_400lu_22ch",
+            "target_label": "Marker",
+            "learning_rate": 1e-3,
+            "liquid_units": 400,
+            "dropout": 0.25,
+            "batch_size": 128,
+            "sequence_length": 250,
+            "dt": 125,
+            "sequence_overlap": 0.5
+        }
+    ]
+}

@@ -2,7 +2,7 @@
     "train_epochs": 50,
     "experiments": [
         {
-            "name": "500seq_200lu_22ch",
+            "name": "500seq_200lu_11ch",
             "target_label": "Marker",
             "learning_rate": 1e-3,
             "liquid_units": 200,
@@ -10,10 +10,11 @@
             "batch_size": 128,
             "sequence_length": 500,
             "dt": 125,
-            "sequence_overlap": 0.5
+            "sequence_overlap": 0.5,
+            "features": [5,7,8,9,10,11,13,14,15,17,20]
         },
         {
-            "name": "500seq_100lu_22ch",
+            "name": "500seq_100lu_11ch",
             "target_label": "Marker",
             "learning_rate": 1e-3,
             "liquid_units": 100,
@@ -21,10 +22,11 @@
             "batch_size": 128,
             "sequence_length": 500,
             "dt": 125,
-            "sequence_overlap": 0.5
+            "sequence_overlap": 0.5,
+            "features": [5,7,8,9,10,11,13,14,15,17,20]
         },
         {
-            "name": "250seq_200lu_22ch",
+            "name": "250seq_200lu_11ch",
             "target_label": "Marker",
             "learning_rate": 1e-3,
             "liquid_units": 200,
@@ -32,10 +34,11 @@
             "batch_size": 128,
             "sequence_length": 250,
             "dt": 125,
-            "sequence_overlap": 0.5
+            "sequence_overlap": 0.5,
+            "features": [5,7,8,9,10,11,13,14,15,17,20]
         },
         {
-            "name": "250seq_100lu_22ch",
+            "name": "250seq_100lu_11ch",
             "target_label": "Marker",
             "learning_rate": 1e-3,
             "liquid_units": 100,
@@ -43,10 +46,11 @@
             "batch_size": 128,
             "sequence_length": 250,
             "dt": 125,
-            "sequence_overlap": 0.5
+            "sequence_overlap": 0.5,
+            "features": [5,7,8,9,10,11,13,14,15,17,20]
         },
         {
-            "name": "no_dt_500seq_200lu_22ch",
+            "name": "no_dt_500seq_200lu_11ch",
             "target_label": "Marker",
             "learning_rate": 1e-3,
             "liquid_units": 200,
@@ -54,10 +58,11 @@
             "batch_size": 128,
             "sequence_length": 500,
             "dt": 0,
-            "sequence_overlap": 0.5
+            "sequence_overlap": 0.5,
+            "features": [5,7,8,9,10,11,13,14,15,17,20]
         },
         {
-            "name": "no_dt_500seq_100lu_22ch",
+            "name": "no_dt_500seq_100lu_11ch",
             "target_label": "Marker",
             "learning_rate": 1e-3,
             "liquid_units": 100,
@@ -65,10 +70,11 @@
             "batch_size": 128,
             "sequence_length": 500,
             "dt": 0,
-            "sequence_overlap": 0.5
+            "sequence_overlap": 0.5,
+            "features": [5,7,8,9,10,11,13,14,15,17,20]
         },
         {
-            "name": "no_dt_250seq_200lu_22ch",
+            "name": "no_dt_250seq_200lu_11ch",
             "target_label": "Marker",
             "learning_rate": 1e-3,
             "liquid_units": 200,
@@ -76,10 +82,11 @@
             "batch_size": 128,
             "sequence_length": 250,
             "dt": 0,
-            "sequence_overlap": 0.5
+            "sequence_overlap": 0.5,
+            "features": [5,7,8,9,10,11,13,14,15,17,20]
         },
         {
-            "name": "no_dt_250seq_100lu_22ch",
+            "name": "no_dt_250seq_100lu_11ch",
             "target_label": "Marker",
             "learning_rate": 1e-3,
             "liquid_units": 100,
@@ -87,7 +94,8 @@
             "batch_size": 128,
             "sequence_length": 250,
             "dt": 0,
-            "sequence_overlap": 0.5
+            "sequence_overlap": 0.5,
+            "features": [5,7,8,9,10,11,13,14,15,17,20]
         }
     ]
 }

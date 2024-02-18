@@ -8,6 +8,7 @@ from constants import DEVICE
 
 from preprocessing import EEGBandsPreprocessing, EEG_BANDS
 
+CONV_OUTPUT_SIZE = 1
 
 class ModelType(IntEnum):
     ONLY_LIQUID = 1
@@ -15,14 +16,28 @@ class ModelType(IntEnum):
     CONV_LIQUID = 3
     CONV_LSTM = 4
 
+    @classmethod
+    def label(cls, model_type) -> str:
+        match model_type:
+            case cls.ONLY_LIQUID:
+                return 'pure_liquid'
+            case cls.ONLY_CONV:
+                return 'pure_convolutional'
+            case cls.CONV_LIQUID:
+                return 'convolutional_liquid'
+            case cls.CONV_LSTM:
+                return 'convolutional_lstm'
+            case _:
+                raise ValueError(f'Invalid model_type {model_type}')
+
 class OnlyLiquidEEG(nn.Module):
-    def __init__(self, liquid_units=50, num_classes=2, channels=4):
+    def __init__(self, liquid_units=50, num_classes=4, channels=22):
         super().__init__()
         self.liquid_block = LiquidBlock(units=liquid_units, out_features=num_classes, in_features=channels)
-        self.softmax = nn.LogSoftmax(dim=0)
+        self.softmax = nn.LogSoftmax(dim=1)
 
     def forward(self, x):
-        x, _ = self.liquid_block(torch.squeeze(x, dim=1))
+        x = self.liquid_block(torch.squeeze(x, dim=1))
         return self.softmax(x)
 
 
@@ -48,6 +63,7 @@ class ConvolutionalBlock(nn.Module):
             nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Dropout2d(p=dropout),
 
             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1),
             nn.BatchNorm2d(64),
@@ -57,18 +73,18 @@ class ConvolutionalBlock(nn.Module):
             nn.Conv2d(in_channels=64, out_channels=1, kernel_size=3, stride=1, padding='same'),
             nn.BatchNorm2d(1),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=3, stride=2)
+            nn.MaxPool2d(kernel_size=2, stride=2)
         )
     
     def forward(self, x):
         return self.cnn(x)
-    
+
 class ConvLiquidEEG(nn.Module):
     def __init__(self, liquid_units=20, num_classes=4, dropout=0):
         super().__init__()
         self.conv_block = ConvolutionalBlock(dropout=dropout)
         # TODO Parametrize in features
-        self.liquid_block = LiquidBlock(units=liquid_units, out_features=num_classes, in_features=3, return_sequences=False)
+        self.liquid_block = LiquidBlock(units=liquid_units, out_features=num_classes, in_features=CONV_OUTPUT_SIZE, return_sequences=False)
         self.softmax = nn.LogSoftmax(dim=1)
     
     def forward(self, x):
@@ -98,9 +114,8 @@ class ConvolutionalEEG(nn.Module):
 class ConvLSTMEEG(nn.Module):
     def __init__(self, num_classes=4, hidden_dim=20, dropout=0, num_layers=1):
         super().__init__()
-        self.hidden_dim = hidden_dim
         self.conv_block = ConvolutionalBlock(dropout=dropout)
-        self.lstm = nn.LSTM(3, hidden_dim, num_layers, batch_first=True)
+        self.lstm = nn.LSTM(CONV_OUTPUT_SIZE, hidden_dim, num_layers, batch_first=True)
         self.linear = nn.LazyLinear(num_classes)
         self.softmax = nn.LogSoftmax(dim=1)
 
@@ -169,7 +184,7 @@ def get_model_instance(model_type: int, num_classes: int, **kwargs) -> nn.Module
             return ConvLiquidEEG(liquid_units, num_classes, dropout)
         case ModelType.CONV_LSTM:
             print(f'>>>>>>>>>>> EXPERIMENT WITH ConvLSTMEEG')
-            return ConvLSTMEEG(num_classes, dropout)
+            return ConvLSTMEEG(num_classes, dropout=dropout, hidden_dim=200)
         
     raise ValueError(f'{model_type} is not a valid model type.')
 
